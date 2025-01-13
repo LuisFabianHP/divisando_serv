@@ -10,19 +10,45 @@ const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
-    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000); // Hace 1 hora
+    // Obtener el registro más reciente para la moneda
+    const recentRecord = await ExchangeRate.findOne({ base_currency: currency })
+      .sort({ createdAt: -1 }) // Ordenar por el más reciente
+      .exec();
 
-    const recentRecord = await ExchangeRate.findOne({
-      base_currency: currency,
-      createdAt: { $gte: oneHourAgo },
-    });
+    if (!recentRecord) {
+      console.log(`No hay registros en la base de datos para ${currency}.`);
+      return false;
+    }
 
-    return !!recentRecord; // Devuelve true si existe un registro reciente
-  } catch (error) {
-    console.error(`Error al verificar registros recientes para ${currency}:`, error.message);
+    const currentDate = new Date();
+    const recordDate = new Date(recentRecord.createdAt);
+
+    // Comparar fechas (sin hora)
+    const currentDateOnly = currentDate.toISOString().split('T')[0];
+    const recordDateOnly = recordDate.toISOString().split('T')[0];
+
+    if (currentDateOnly !== recordDateOnly) {
+      //console.log(`La fecha de ${currency} (${recordDateOnly}) no coincide con la fecha actual (${currentDateOnly}).`);
+      return false;
+    }
+
+    // Comparar horas (redondeando al inicio de la hora)
+    const currentHour = currentDate.getHours();
+    const recordHour = recordDate.getHours();
+
+    if (currentHour <= recordHour) {
+      //console.log(`La hora actual (${currentHour}) aún no supera la última hora registrada (${recordHour}) para ${currency}.`);
+      return true;
+    }
+
+    //console.log(`La hora actual (${currentHour}) supera la última hora registrada (${recordHour}) para ${currency}.`);
     return false;
+  } catch (error) {
+    //console.error(`Error al verificar registros recientes para ${currency}:`, error.message);
+    return true;
   }
 }
+
 
 /**
  * Obtiene tasas de cambio de una moneda base y las guarda en MongoDB.
@@ -46,22 +72,14 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       value,
     }));
 
-    console.log(`Tasas de cambio recibidas para ${baseCurrency}:`, rates);
+    //console.log(`Tasas de cambio recibidas para ${baseCurrency}:`, rates);
 
-    const existingRate = await ExchangeRate.findOne({ base_currency: baseCurrency });
-
-    if (existingRate) {
-      existingRate.rates = rates;
-      existingRate.date = new Date(response.data.time_last_update_utc);
-      await existingRate.save();
-    } else {
-      await ExchangeRate.create({
-        base_currency: baseCurrency,
-        rates,
-        date: new Date(response.data.time_last_update_utc),
-      });
-    }
-
+    await ExchangeRate.create({
+      base_currency: baseCurrency,
+      rates,
+      date: new Date(response.data.time_last_update_utc),
+    });
+    
     console.log(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
   } catch (error) {
     console.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}:`, error.message);
@@ -76,9 +94,9 @@ async function updateExchangeRates() {
     const recentlyFetched = await isCurrencyRecentlyFetched(currency);
 
     if (recentlyFetched) {
-      console.log(`Se omitió la carga de ${currency} porque ya tiene registros recientes.`);
+      console.log(`Se omitió la carga porque ya tiene registros recientes.`);
       continue;
-    }
+    } 
 
     await fetchExchangeRatesForCurrency(currency);
   }
