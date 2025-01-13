@@ -2,48 +2,89 @@ const cron = require('node-cron');
 const axios = require('axios');
 const ExchangeRate = require('../models/ExchangeRate');
 
-const fetchExchangeRates = async () => {
+// Selección de monedas (configurable)
+const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
+
+/**
+ * Verifica si una moneda tiene registros recientes (última hora).
+ */
+async function isCurrencyRecentlyFetched(currency) {
   try {
-    // URL de la API de terceros
+    const oneHourAgo = new Date(Date.now() - 1 * 60 * 60 * 1000); // Hace 1 hora
+
+    const recentRecord = await ExchangeRate.findOne({
+      base_currency: currency,
+      date: { $gte: oneHourAgo },
+    });
+
+    return !!recentRecord; // Devuelve true si existe un registro reciente
+  } catch (error) {
+    console.error(`Error al verificar registros recientes para ${currency}:`, error.message);
+    return false;
+  }
+}
+
+/**
+ * Obtiene tasas de cambio de una moneda base y las guarda en MongoDB.
+ */
+async function fetchExchangeRatesForCurrency(baseCurrency) {
+  try {
+    console.log(`Obteniendo tasas de cambio para ${baseCurrency}...`);
+
     const API_KEY = process.env.EXCHANGE_RATE_API_KEY;
-    const url = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
+    const API_URL = process.env.EXCHANGE_RATE_API_URL;
 
-    // Solicitud a la API
-    const response = await axios.get(url);
-    const { base_code, conversion_rates, time_last_update_utc } = response.data;
-
-    if (!base_code || !conversion_rates) {
-      console.error('Datos inválidos recibidos de la API.');
-      return;
+    // Validar que la URL de la API y la clave estén configuradas
+    if (!API_KEY || !API_URL) {
+      throw new Error('La URL de la API o la clave de la API no están configuradas. Verifica las variables de entorno.');
     }
 
-    // Formatear datos para MongoDB
-    const rates = Object.entries(conversion_rates).map(([currency, value]) => ({
+    const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`);
+
+    const rates = Object.entries(response.data.conversion_rates).map(([currency, value]) => ({
       currency,
       value,
     }));
 
-    // Crear o actualizar el documento en MongoDB
-    const existingRate = await ExchangeRate.findOne({ base_currency: base_code });
+    console.log(`Tasas de cambio recibidas para ${baseCurrency}:`, rates);
+
+    const existingRate = await ExchangeRate.findOne({ base_currency: baseCurrency });
+
     if (existingRate) {
       existingRate.rates = rates;
-      existingRate.date = new Date(time_last_update_utc);
+      existingRate.date = new Date(response.data.time_last_update_utc);
       await existingRate.save();
     } else {
       await ExchangeRate.create({
-        base_currency: base_code,
+        base_currency: baseCurrency,
         rates,
-        date: new Date(time_last_update_utc),
+        date: new Date(response.data.time_last_update_utc),
       });
     }
 
-    console.log('Tasas de cambio actualizadas correctamente.');
+    console.log(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
   } catch (error) {
-    console.error('Error al obtener las tasas de cambio:', error.message);
+    console.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}:`, error.message);
   }
-};
+}
 
-// Programar el cron job (por ejemplo, cada hora)
-cron.schedule('0 * * * *', fetchExchangeRates);
+/**
+ * Cron job para actualizar tasas de cambio.
+ */
+async function updateExchangeRates() {
+  for (const currency of selectedCurrencies) {
+    const recentlyFetched = await isCurrencyRecentlyFetched(currency);
 
-module.exports = fetchExchangeRates;
+    if (recentlyFetched) {
+      console.log(`Se omitió la carga de ${currency} porque ya tiene registros recientes.`);
+      continue;
+    }
+
+    await fetchExchangeRatesForCurrency(currency);
+  }
+}
+
+// Programar el cron job (cada hora)
+cron.schedule('0 * * * *', updateExchangeRates);
+
+module.exports = updateExchangeRates;

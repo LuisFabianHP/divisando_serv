@@ -1,7 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/database');
-const fetchExchangeRates = require('./tasks/fetchExchangeRates');
+const updateExchangeRates = require('./tasks/fetchExchangeRates');
 
 const PORT = process.env.PORT;
 
@@ -9,7 +9,7 @@ const PORT = process.env.PORT;
 connectDB();
 
 // Iniciar el cron job
-fetchExchangeRates();
+updateExchangeRates(); // Ejecuta manualmente la función
 
 // Iniciar el servidor
 app.listen(PORT, () => {
