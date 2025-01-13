@@ -14,7 +14,7 @@ async function isCurrencyRecentlyFetched(currency) {
 
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
-      date: { $gte: oneHourAgo },
+      createdAt: { $gte: oneHourAgo },
     });
 
     return !!recentRecord; // Devuelve true si existe un registro reciente

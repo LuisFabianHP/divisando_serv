@@ -23,6 +23,7 @@ const exchangeRateSchema = new mongoose.Schema(
   },
   {
     collection: 'exchangeRates', // Nombre de la colección en MongoDB
+    timestamps: true // Agrega campos createdAt y updatedAt automáticamente
   }
 );
 
