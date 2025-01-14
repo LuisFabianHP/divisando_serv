@@ -74,11 +74,11 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
 
     //console.log(`Tasas de cambio recibidas para ${baseCurrency}:`, rates);
 
-    await ExchangeRate.create({
+    /*await ExchangeRate.create({
       base_currency: baseCurrency,
       rates,
       date: new Date(response.data.time_last_update_utc),
-    });
+    });*/
     
     console.log(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
   } catch (error) {
