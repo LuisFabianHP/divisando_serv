@@ -4,4 +4,4 @@ node_modules/
 * - copia.*
 *-copia.*
 .env
-
+logs/
