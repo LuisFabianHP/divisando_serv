@@ -1,0 +1,19 @@
+2025-01-15T01:37:02.437Z [INFO]: 2025-01-15 - Inicio de la extracción de tasas de cambio.
+2025-01-15T01:37:03.529Z [INFO]: 2025-01-15 - La fecha de USD (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:03.530Z [INFO]: Obteniendo tasas de cambio para USD...
+2025-01-15T01:37:03.907Z [INFO]: Tasas de cambio para USD guardadas exitosamente.
+2025-01-15T01:37:04.011Z [INFO]: 2025-01-15 - La fecha de CAD (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:04.011Z [INFO]: Obteniendo tasas de cambio para CAD...
+2025-01-15T01:37:04.395Z [INFO]: Tasas de cambio para CAD guardadas exitosamente.
+2025-01-15T01:37:04.514Z [INFO]: 2025-01-15 - La fecha de MXN (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:04.514Z [INFO]: Obteniendo tasas de cambio para MXN...
+2025-01-15T01:37:04.911Z [INFO]: Tasas de cambio para MXN guardadas exitosamente.
+2025-01-15T01:37:05.022Z [INFO]: 2025-01-15 - La fecha de BRL (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:05.023Z [INFO]: Obteniendo tasas de cambio para BRL...
+2025-01-15T01:37:05.283Z [INFO]: Tasas de cambio para BRL guardadas exitosamente.
+2025-01-15T01:37:05.338Z [INFO]: 2025-01-15 - La fecha de ARS (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:05.338Z [INFO]: Obteniendo tasas de cambio para ARS...
+2025-01-15T01:37:05.597Z [INFO]: Tasas de cambio para ARS guardadas exitosamente.
+2025-01-15T01:37:05.652Z [INFO]: 2025-01-15 - La fecha de EUR (2025-01-14) no coincide con la fecha actual (2025-01-15).
+2025-01-15T01:37:05.652Z [INFO]: Obteniendo tasas de cambio para EUR...
+2025-01-15T01:37:05.862Z [INFO]: Tasas de cambio para EUR guardadas exitosamente.
