@@ -9,18 +9,23 @@ const taskErrorHandler = (task) => async (...args) => {
   try {
     await task(...args); // Ejecuta la tarea
   } catch (error) {
-    const errorDetails = {
+    const developerMessage = {
+      status: error.status || 500,
       message: error.message,
       stack: error.stack,
       timestamp: new Date().toISOString(),
     };
 
     // Log del error en el archivo correspondiente
-    taskLogger.error(JSON.stringify(errorDetails));
+    if (developerMessage.status >= 500) {
+      taskLogger.error(JSON.stringify(developerMessage)); // Error crítico
+    } else {
+      taskLogger.info(JSON.stringify(developerMessage)); // Error menor
+    }
 
     // Opcional: Mostrar el error en la consola (solo para desarrollo)
     if (process.env.NODE_ENV === 'development') {
-      console.error('Error en la tarea:', errorDetails);
+      console.error('Error en la tarea:', developerMessage);
     }
   }
 };

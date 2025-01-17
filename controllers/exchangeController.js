@@ -1,4 +1,5 @@
 const ExchangeRate = require('../models/ExchangeRate');
+const { apiLogger } = require('../utils/logger');
 
 /**
  * Controlador para obtener tasas de cambio de una moneda específica.
@@ -15,12 +16,9 @@ const getExchangeRates = async (req, res, next) => {
       throw error;
     }
 
-    // Convertir a mayúsculas para evitar inconsistencias
     const baseCurrency = currency.toUpperCase();
-
-    // Consultar MongoDB para la moneda base
     const exchangeRate = await ExchangeRate.findOne({ base_currency: baseCurrency })
-      .sort({ updatedAt: -1 }) // Obtener el registro más reciente
+      .sort({ updatedAt: -1 })
       .exec();
 
     // Validar si se encontró un registro
@@ -31,14 +29,15 @@ const getExchangeRates = async (req, res, next) => {
       throw error;
     }
 
-    // Enviar los datos al cliente
+    apiLogger.info(`Tasas de cambio obtenidas para: ${baseCurrency}`);
     return res.status(200).json({
       base_currency: exchangeRate.base_currency,
       rates: exchangeRate.rates,
       last_updated: exchangeRate.updatedAt,
     });
-  } catch (error) { 
-      next(error);
+  } catch (error) {
+    apiLogger.error(`Error en getExchangeRates: ${error.message}`);
+    next(error);
   }
 };
 
@@ -57,11 +56,9 @@ const getComparisonData = async (req, res, next) => {
       throw error;
     }
 
-    // Convertir a mayúsculas para evitar inconsistencias
     const baseCurrencyUpper = baseCurrency.toUpperCase();
     const targetCurrencyUpper = targetCurrency.toUpperCase();
 
-    // Obtener datos de la moneda base
     const baseData = await ExchangeRate.findOne({ base_currency: baseCurrencyUpper })
       .sort({ updatedAt: -1 })
       .exec();
@@ -73,16 +70,16 @@ const getComparisonData = async (req, res, next) => {
       throw error;
     }
 
-    // Obtener el último valor de la moneda destino
-    const currentRate = baseData.rates.get(targetCurrencyUpper);
-    if (!currentRate) {
+    const currentRateEntry = baseData.rates.find(rate => rate.currency === targetCurrencyUpper);
+    if (!currentRateEntry) {
       const error = new Error(`No se encontraron datos para la moneda destino: ${targetCurrencyUpper}`);
       error.status = 404;
       error.userMessage = error.message;
       throw error;
     }
 
-    // Obtener un valor anterior para comparación
+    const currentRate = currentRateEntry.value;
+
     const previousRateDoc = await ExchangeRate.findOne({
       base_currency: baseCurrencyUpper,
       updatedAt: { $lt: baseData.updatedAt },
@@ -90,20 +87,18 @@ const getComparisonData = async (req, res, next) => {
       .sort({ updatedAt: -1 })
       .exec();
 
-    const previousRate = previousRateDoc?.rates.get(targetCurrencyUpper) || null;
+    const previousRateEntry = previousRateDoc?.rates.find(rate => rate.currency === targetCurrencyUpper);
+    const previousRate = previousRateEntry?.value || null;
 
-    // Determinar estado ("up" o "dw")
     const status = previousRate
       ? currentRate > previousRate
         ? 'up'
         : 'dw'
       : 'no-data';
 
-    // Log exitoso
-    apiLogger.info(`Comparación exitosa: ${baseCurrencyUpper} a ${targetCurrencyUpper}. Estado: ${status}`);
+    apiLogger.info(`Comparación realizada: ${baseCurrencyUpper} a ${targetCurrencyUpper}. Estado: ${status}`);
 
-    // Responder al cliente
-    res.status(200).json({
+    return res.status(200).json({
       baseCurrency: baseCurrencyUpper,
       targetCurrency: targetCurrencyUpper,
       currentRate,
@@ -111,9 +106,9 @@ const getComparisonData = async (req, res, next) => {
       status,
     });
   } catch (error) {
-    next(error); // Pasar el error al middleware de manejo de errores
+    apiLogger.error(`Error en getComparisonData: ${error.message}`);
+    next(error);
   }
 };
 
-
-module.exports = { getExchangeRates, getComparisonData  };
+module.exports = { getExchangeRates, getComparisonData };

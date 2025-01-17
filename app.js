@@ -17,21 +17,12 @@ app.use(express.json()); // Parseo de JSON
 // Rutas
 app.use('/exchange', exchangeRoutes);
 
-// Manejo de errores
-app.use((req, res) => {
-  if (req.status == 500) {
-    const error = new Error(err.stack);
-    error.status = 500;
-    error.userMessage = 'Something went wrong!';
-    throw error;
-  }
-});
-
-app.use((req, res) => {
-  const error = new Error(err.stack);
-  error.status = 400;
-  error.userMessage = `Ruta no encontrada: ${req.originalUrl}`;
-  throw error;
+// Manejo de rutas no encontradas
+app.use((req, res, next) => {
+  const error = new Error(`Ruta no encontrada: ${req.originalUrl}`);
+  error.status = 404;
+  error.userMessage = 'La ruta solicitada no existe.';
+  next(error);
 });
 
 // Middlewares manejo de errores
