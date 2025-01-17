@@ -1,4 +1,5 @@
 const ExchangeRate = require('../models/ExchangeRate');
+const AvailableCurrencies = require('../models/AvailableCurrencies');
 const { apiLogger } = require('../utils/logger');
 
 /**
@@ -111,4 +112,30 @@ const getComparisonData = async (req, res, next) => {
   }
 };
 
-module.exports = { getExchangeRates, getComparisonData };
+/**
+ * Controlador para obtener la lista de monedas disponibles.
+ */
+const getAvailableCurrencies = async (req, res, next) => {
+  try {
+    const result = await AvailableCurrencies.findOne({});
+    if (!result) {
+      const error = new Error('No hay monedas disponibles en este momento.');
+      error.status = 404;
+      throw error;
+    }
+
+    res.status(200).json({
+      currencies: result.currencies,
+      updatedAt: result.updatedAt,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+module.exports = { 
+  getExchangeRates, 
+  getComparisonData,
+  getAvailableCurrencies 
+};

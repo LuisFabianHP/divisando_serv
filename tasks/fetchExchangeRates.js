@@ -1,6 +1,8 @@
 const cron = require('node-cron');
 const axios = require('axios');
+const mongoose = require('mongoose');
 const ExchangeRate = require('../models/ExchangeRate');
+const AvailableCurrencies = require('../models/AvailableCurrencies');
 const { taskLogger } = require('../utils/logger');
 const taskErrorHandler = require('../middlewares/taskErrorHandler');
 
@@ -12,45 +14,26 @@ const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
-    // Obtener el registro más reciente para la moneda
-    const recentRecord = await ExchangeRate.findOne({ base_currency: currency })
-      .sort({ createdAt: -1 }) // Ordenar por el más reciente
-      .exec();
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+    const recentRecord = await ExchangeRate.findOne({
+      base_currency: currency,
+      createdAt: { $gte: oneHourAgo }, // Comparar con una hora atrás
+    }).exec();
 
     if (!recentRecord) {
-      taskLogger.error(`No hay registros en la base de datos para ${currency}.`);
+      taskLogger.info(`No hay registros recientes para ${currency}.`);
       return false;
     }
 
-    const currentDate = new Date();
-    const recordDate = new Date(recentRecord.createdAt);
-
-    // Comparar fechas (sin hora)
-    const currentDateOnly = currentDate.toISOString().split('T')[0];
-    const recordDateOnly = recordDate.toISOString().split('T')[0];
-
-    if (currentDateOnly !== recordDateOnly) {
-      taskLogger.info(`La fecha de ${currency} (${recordDateOnly}) no coincide con la fecha actual (${currentDateOnly}).`);
-      return false;
-    }
-
-    // Comparar horas (redondeando al inicio de la hora)
-    const currentHour = currentDate.getHours();
-    const recordHour = recordDate.getHours();
-
-    if (currentHour <= recordHour) {
-      taskLogger.info(`La hora actual (${currentHour}) aún no supera la última hora registrada (${recordHour}) para ${currency}.`);
-      return true;
-    }
-
-    taskLogger.info(`La hora actual (${currentHour}) supera la última hora registrada (${recordHour}) para ${currency}.`);
-    return false;
-  } catch (error) {
-    taskLogger.error(`Error al verificar registros recientes para ${currency}:`, error.message);
+    taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
     return true;
+  } catch (error) {
+    taskLogger.error(`Error al verificar registros recientes para ${currency}: ${error.message}`);
+    return false; // Asumir que no fue actualizada para evitar omitir actualizaciones.
   }
 }
-
 
 /**
  * Obtiene tasas de cambio de una moneda base y las guarda en MongoDB.
@@ -88,23 +71,49 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
 }
 
 /**
+ * Actualiza la lista de monedas disponibles.
+ */
+async function updateCurrencyList() {
+  try {
+    const latestRecords = await ExchangeRate.find().sort({ updatedAt: -1 }).exec();
+
+    const currenciesSet = new Set(latestRecords.map(record => record.base_currency));
+    const currencies = Array.from(currenciesSet);
+
+    // Usar el modelo de Mongoose
+    await AvailableCurrencies.deleteMany({});
+    await AvailableCurrencies.create({ currencies });
+
+    taskLogger.info('Lista de monedas disponibles actualizada exitosamente.');
+  } catch (error) {
+    taskLogger.error(`Error al actualizar la lista de monedas disponibles: ${error.message}`);
+  }
+}
+
+
+/**
  * Cron job para actualizar tasas de cambio.
  */
 async function updateExchangeRates() {
 
-  const currentDate = new Date();
-
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
   
-  for (const currency of selectedCurrencies) {
-    const recentlyFetched = await isCurrencyRecentlyFetched(currency);
+  try {
+    for (const baseCurrency of selectedCurrencies) {
+      const recentlyFetched = await isCurrencyRecentlyFetched(baseCurrency);
 
-    if (recentlyFetched) {
-      taskLogger.info(`Se omitió la carga para ${currency} porque ya tiene registros recientes.`);
-      continue;
-    } 
+      if (recentlyFetched) {
+        taskLogger.info(`La moneda ${baseCurrency} ya fue actualizada recientemente. Saltando...`);
+        continue;
+      }
 
-    await fetchExchangeRatesForCurrency(currency);
+      await fetchExchangeRatesForCurrency(baseCurrency);
+    }
+
+    // Actualizar la lista de monedas disponibles después de la extracción
+    await updateCurrencyList();
+  } catch (error) {
+    taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
   }
 }
 
