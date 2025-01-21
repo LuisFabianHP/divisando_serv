@@ -6,7 +6,7 @@ const connectDB = require('./config/database');
 const updateExchangeRates = require('./tasks/fetchExchangeRates');
 
 const PORT = process.env.PORT;
-const APP_NAME = process.env.APP_NAME;
+const API_NAME = process.env.API_NAME;
 
 // Conectar a la base de datos
 connectDB();
