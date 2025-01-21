@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const errorHandler = require('./middlewares/errorHandler');
+const validateApiKey = require('./middlewares/validateApiKey');
 require('dotenv').config();
 
 const app = express();
@@ -13,6 +14,7 @@ const exchangeRoutes = require('./routes/exchangeRoutes');
 app.use(helmet()); // Seguridad básica
 app.use(cors());   // Manejo de CORS
 app.use(express.json()); // Parseo de JSON
+app.use(validateApiKey); // Validar clave API antes de las rutas
 
 // Rutas
 app.use('/exchange', exchangeRoutes);
