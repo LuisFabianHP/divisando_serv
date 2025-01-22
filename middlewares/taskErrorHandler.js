@@ -24,7 +24,7 @@ const taskErrorHandler = (task) => async (...args) => {
     }
 
     // Opcional: Mostrar el error en la consola (solo para desarrollo)
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV !== 'production') {
       console.error('Error en la tarea:', developerMessage);
     }
   }
