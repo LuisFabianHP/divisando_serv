@@ -1,4 +1,4 @@
-const { apiLogger } = require('../utils/logger');
+const { apiLogger } = require('@utils/logger');
 
 const validateApiKey = (req, res, next) => {
     const apiKey = req.headers['x-api-key'];
