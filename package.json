@@ -2,7 +2,7 @@
   "name": "divisando-serv",
   "version": "1.0.0",
   "description": "Aplicaciones de servidor en Node.js: exclusivamente en el servidor.",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ./bin/www"
@@ -17,9 +17,18 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "helmet": "^8.0.0",
+    "module-alias": "^2.2.3",
     "mongoose": "^8.5.4",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "winston": "^3.17.0"
+  },
+  "_moduleAliases": {
+    "@config": "./config",
+    "@middlewares": "./middlewares",
+    "@models": "./models",
+    "@routes": "./routes",
+    "@utils": "./utils",
+    "@tests": "./tests"
   }
 }
