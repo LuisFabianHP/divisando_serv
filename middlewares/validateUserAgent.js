@@ -1,4 +1,4 @@
-const apiLogger = require('../utils/logger').apiLogger;
+const apiLogger = require('@utils/logger').apiLogger;
 
 const validateUserAgent = (req, res, next) => {
   const userAgent = req.headers['user-agent'];

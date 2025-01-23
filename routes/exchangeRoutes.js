@@ -1,5 +1,5 @@
 const express = require('express');
-const { getExchangeRates, getComparisonData, getAvailableCurrencies } = require('../controllers/exchangeController');
+const { getExchangeRates, getComparisonData, getAvailableCurrencies } = require('@controllers/exchangeController');
 const router = express.Router();
 
 // Endpoint para comparar monedas

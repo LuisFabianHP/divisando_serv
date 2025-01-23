@@ -1,10 +1,10 @@
 const cron = require('node-cron');
 const axios = require('axios');
 const mongoose = require('mongoose');
-const ExchangeRate = require('../models/ExchangeRate');
-const AvailableCurrencies = require('../models/AvailableCurrencies');
-const { taskLogger } = require('../utils/logger');
-const taskErrorHandler = require('../middlewares/taskErrorHandler');
+const ExchangeRate = require('@models/ExchangeRate');
+const AvailableCurrencies = require('@models/AvailableCurrencies');
+const { taskLogger } = require('@utils/logger');
+const taskErrorHandler = require('@middlewares/taskErrorHandler');
 
 // Selección de monedas (configurable)
 const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];

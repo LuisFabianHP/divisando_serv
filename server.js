@@ -2,8 +2,8 @@ require('dotenv').config();
 const https = require('https');
 const fs = require('fs');
 const app = require('./app');
-const { connectDB } = require('./config/database');
-const updateExchangeRates = require('./tasks/fetchExchangeRates');
+const { connectDB } = require('@config/database');
+const updateExchangeRates = require('@tasks/fetchExchangeRates');
 
 const PORT = process.env.PORT;
 const API_NAME = process.env.API_NAME;

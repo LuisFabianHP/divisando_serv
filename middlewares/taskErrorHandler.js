@@ -1,4 +1,4 @@
-const { taskLogger } = require('../utils/logger');
+const { taskLogger } = require('@utils/logger');
 
 /**
  * Middleware para manejar errores en tareas.

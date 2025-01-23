@@ -1,4 +1,4 @@
-const { apiLogger } = require('../utils/logger');
+const { apiLogger } = require('@utils/logger');
 
 const errorHandler = (err, req, res, next) => {
     // Mensaje corto para el usuario
