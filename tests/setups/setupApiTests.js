@@ -1,7 +1,7 @@
-const { connectDB, closeDB } = require('../../config/database');
+const { connectDB, closeDB } = require('@config/database');
 const mongoose = require('mongoose');
-const ExchangeRate = require('../../models/ExchangeRate');
-const AvailableCurrencies = require('../../models/AvailableCurrencies');
+const ExchangeRate = require('@models/ExchangeRate');
+const AvailableCurrencies = require('@models/AvailableCurrencies');
 
 // Conectar a la base de datos antes de todas las pruebas
 beforeAll(async () => {

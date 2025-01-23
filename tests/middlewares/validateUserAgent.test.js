@@ -1,4 +1,4 @@
-const validateUserAgent = require('../../middlewares/validateUserAgent');
+const validateUserAgent = require('@middlewares/validateUserAgent');
 
 describe('Middleware: validateUserAgent', () => {
   let req, res, next;
