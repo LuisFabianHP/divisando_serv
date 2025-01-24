@@ -6,6 +6,7 @@ const cors = require('cors');
 const errorHandler = require('@middlewares/errorHandler');
 const validateApiKey = require('@middlewares/validateApiKey');
 const validateUserAgent = require('@middlewares/validateUserAgent'); 
+const apiRateLimiter = require('@middlewares/rateLimiter');
 
 const app = express();
 
@@ -26,6 +27,9 @@ app.use(cors(corsOptions));   // Manejo de CORS
 app.use(express.json()); // Parseo de JSON
 app.use(validateApiKey); // Validar clave API antes de las rutas
 app.use(validateUserAgent); // Validar User-Agent
+
+// Aplicar el middleware a todas las rutas de la API
+app.use('/exchange', apiRateLimiter); 
 
 // Rutas
 app.use('/exchange', exchangeRoutes);
