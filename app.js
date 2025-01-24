@@ -7,11 +7,13 @@ const errorHandler = require('@middlewares/errorHandler');
 const validateApiKey = require('@middlewares/validateApiKey');
 const validateUserAgent = require('@middlewares/validateUserAgent'); 
 const apiRateLimiter = require('@middlewares/rateLimiter');
+const validateJWT = require('@middlewares/validateJWT');
 
 const app = express();
 
 // Importando la rutas
 const exchangeRoutes = require('@routes/exchangeRoutes');
+const authRoutes = require('@routes/authRoutes');
 
 // Configurar CORS
 const originValues = process.env.API_CROS_DOMAINS.split(',').map(item => item.trim());
@@ -33,6 +35,15 @@ app.use('/exchange', apiRateLimiter);
 
 // Rutas
 app.use('/exchange', exchangeRoutes);
+app.use('/auth', authRoutes);
+
+// Proteger rutas específicas
+app.use('/api/protected-route', validateJWT, (req, res, next) => {
+  const error = new Error(`Usuario: ${req.user.username} - Esta es una ruta protegida.`);
+  error.status = 404;
+  error.userMessage = 'La ruta solicitada no existe.';
+  next(error);
+});
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
