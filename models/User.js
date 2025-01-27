@@ -30,6 +30,9 @@ const userSchema = new mongoose.Schema(
         providerId: {
             type: String, // ID del usuario en Google, Facebook, etc.
         },
+        refreshToken: {
+            type: String, // Almacena el token de refresco
+        },
     },
     {
         collection: 'User', // Nombre de la colección en MongoDB
