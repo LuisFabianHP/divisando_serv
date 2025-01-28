@@ -6,10 +6,10 @@ const { apiLogger } = require('@utils/logger');
 /**
  * Registro de nuevos usuarios.
  */
-const register = async (req, res) => {
-    const { username, email, password } = req.body;
-
+const register = async (req, res, next) => {
     try {
+        const { username, email, password } = req.body;
+
         // Verificar si el usuario o correo ya existe
         const userExists = await User.findOne({ $or: [{ username }, { email }] });
         if (userExists) {
@@ -20,21 +20,23 @@ const register = async (req, res) => {
         const user = await User.create({
             username,
             email,
-            password, // Se encripta automáticamente por el middleware
+            password, 
             provider: 'local',
+            refreshTokens: []
         });
 
-        // Generar token JWT
-        const token = generateJWT({ id: user._id, username: user.username, role: user.role });
+        // Generar tokens
+        const token = generateJWT(user.id, user.role);
+        const refreshToken = generateRefreshToken(user.id);
+        
+        // Guardar el Refresh Token
+        user.refreshTokens.push({ token: refreshToken });
+        await user.save();
 
-        res.status(201).json({ token });
+        res.status(201).json({ token, refreshToken });
     } catch (error) {
-        // Registrar el error en los logs
-        apiLogger.error(`Error al registrar el usuario: ${error.message}`, {
-            stack: error.stack,
-        });
-
-        res.status(500).json({ error: 'Error al registrar el usuario. Por favor, intente nuevamente.' });
+        apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
+        next(error);
     }
 };
 
@@ -43,72 +45,96 @@ const register = async (req, res) => {
  */
 const login = async (req, res, next) => {
     try {
-      const { email, password } = req.body;
-
-        // Buscar usuario por correo
+        const { email, password } = req.body;
         const user = await User.findOne({ email });
-        if (!user) {
-            const error = new Error('El email es inválido.');
-            error.status = 401;
-            throw error;
-        }
 
-        // Verificar contraseña
-        const isMatch = await user.matchPassword(password);
-        if (!isMatch) {
-            const error = new Error('El password es inválido.');
-            error.status = 401;
-            throw error;
+        if (!user || !(await user.matchPassword(password))) {
+            return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
     
-        // Generar tokens
         const accessToken = generateJWT(user.id, user.role);
         const refreshToken = generateRefreshToken(user.id);
     
-        // Guardar Refresh Token en la base de datos
-        user.refreshToken = refreshToken;
+        // Almacenar el Refresh Token
+        user.refreshTokens.push({ token: refreshToken });
+        if (user.refreshTokens.length > 5) {
+            user.refreshTokens.shift();
+        }
         await user.save();
     
-        // Responder con los tokens
         res.status(200).json({ accessToken, refreshToken });
     } catch (error) {
+        apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
 
+/**
+ * Endpoint para renovar Access Token
+ */
 const refreshAccessToken = async (req, res, next) => {
     try {
         const { refreshToken } = req.body;
-
         if (!refreshToken) {
-            const error = new Error('Refresh Token es requerido.');
-            error.status = 400;
-            throw error;
+            return res.status(400).json({ error: 'El Refresh Token es requerido.' });
         }
-
-        // Validar Refresh Token
+    
         const payload = validateRefreshToken(refreshToken);
         if (!payload) {
-            const error = new Error('Refresh Token inválido.');
-            error.status = 403;
-            throw error;
+            return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
-
-        // Verificar si el Refresh Token está en la base de datos
-        const user = await User.findOne({ refreshToken });
-        if (!user) {
-            const error = new Error('Token no asociado a ningún usuario.');
-            error.status = 403;
-            throw error;
+    
+        const user = await User.findById(payload.id);
+        if (!user || !user.refreshTokens.some(t => t.token === refreshToken)) {
+            return res.status(403).json({ error: 'Refresh Token no válido.' });
         }
-
-        // Generar un nuevo Access Token
+    
         const newAccessToken = generateJWT(user.id, user.role);
-
-        res.status(200).json({ accessToken: newAccessToken });
+        const newRefreshToken = generateRefreshToken(user.id);
+    
+        user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
+        user.refreshTokens.push({ token: newRefreshToken });
+        if (user.refreshTokens.length > 5) {
+            user.refreshTokens.shift();
+        }
+    
+        await user.save();
+    
+        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch (error) {
+        apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
 
-module.exports = { register, login, refreshAccessToken };
+/**
+ * Endpoint para cerrar la sesión
+ */
+const logout = async (req, res, next) => {
+    try {
+        const { refreshToken } = req.body;
+        if (!refreshToken) {
+            return res.status(400).json({ error: 'El Refresh Token es requerido para cerrar sesión.' });
+        }
+    
+        const user = await User.findOne({ 'refreshTokens.token': refreshToken });
+        if (!user) {
+            return res.status(403).json({ error: 'El Refresh Token no está asociado a ningún usuario.' });
+        }
+    
+        user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
+        await user.save();
+    
+        res.status(200).json({ message: 'Sesión cerrada correctamente.' });
+    } catch (error) {
+
+        next(error);
+    }
+};
+
+module.exports = { 
+    register, 
+    login, 
+    refreshAccessToken, 
+    logout 
+};
