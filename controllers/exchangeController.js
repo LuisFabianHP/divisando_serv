@@ -60,6 +60,7 @@ const getComparisonData = async (req, res, next) => {
     const baseCurrencyUpper = baseCurrency.toUpperCase();
     const targetCurrencyUpper = targetCurrency.toUpperCase();
 
+    // Obtener el registro más reciente
     const baseData = await ExchangeRate.findOne({ base_currency: baseCurrencyUpper })
       .sort({ updatedAt: -1 })
       .exec();
@@ -71,6 +72,7 @@ const getComparisonData = async (req, res, next) => {
       throw error;
     }
 
+    // Buscar la tasa de la moneda de destino en la entrada más reciente
     const currentRateEntry = baseData.rates.find(rate => rate.currency === targetCurrencyUpper);
     if (!currentRateEntry) {
       const error = new Error(`No se encontraron datos para la moneda destino: ${targetCurrencyUpper}`);
@@ -80,17 +82,22 @@ const getComparisonData = async (req, res, next) => {
     }
 
     const currentRate = currentRateEntry.value;
+    let previousRate = null;
+    let previousRateDoc = baseData;
 
-    const previousRateDoc = await ExchangeRate.findOne({
-      base_currency: baseCurrencyUpper,
-      updatedAt: { $lt: baseData.updatedAt },
-    })
-      .sort({ updatedAt: -1 })
-      .exec();
+    // Buscar el valor anterior más antiguo que sea diferente al actual
+    while (previousRateDoc && (!previousRate || previousRate === currentRate)) {
+      previousRateDoc = await ExchangeRate.findOne({
+        base_currency: baseCurrencyUpper,
+        updatedAt: { $lt: previousRateDoc.updatedAt },
+      })
+        .sort({ updatedAt: -1 })
+        .exec();
 
-    const previousRateEntry = previousRateDoc?.rates.find(rate => rate.currency === targetCurrencyUpper);
-    const previousRate = previousRateEntry?.value || null;
+      previousRate = previousRateDoc?.rates.find(rate => rate.currency === targetCurrencyUpper)?.value || null;
+    }
 
+    // Determinar si el valor subió o bajó
     const status = previousRate
       ? currentRate > previousRate
         ? 'up'
