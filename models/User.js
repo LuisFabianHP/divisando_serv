@@ -9,10 +9,12 @@ const userSchema = new mongoose.Schema(
             unique: true,
             required: true,
         },
-        email: {
-            type: String,
-            unique: true,
+        email: { 
+            type: String, 
+            unique: true, 
             required: true,
+            lowercase: true, // Normalizar emails
+            match: [/^\S+@\S+\.\S+$/, 'Email inválido'] // Validación básica
         },
         password: {
             type: String,
@@ -30,12 +32,9 @@ const userSchema = new mongoose.Schema(
         providerId: {
             type: String, // ID del usuario en Google, Facebook, etc.
         },
-        refreshTokens: [ // Almacena el token de refresco
-            {
-              token: { type: String, required: true },
-              createdAt: { type: Date, default: Date.now },
-            },
-        ],
+        refreshToken: { 
+            type: String 
+        },
     },
     {
         collection: 'User', // Nombre de la colección en MongoDB
@@ -44,16 +43,16 @@ const userSchema = new mongoose.Schema(
 );
 
 // Middleware para encriptar la contraseña antes de guardarla
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', function (next) {
     if (!this.isModified('password')) return next();
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
+    const salt = bcrypt.genSaltSync(10);
+    this.password = bcrypt.hashSync(this.password, salt);
     next();
 });
 
 // Método para comparar contraseñas
-userSchema.methods.matchPassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
+userSchema.methods.matchPassword = function (enteredPassword) {
+    return bcrypt.compareSync(enteredPassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);

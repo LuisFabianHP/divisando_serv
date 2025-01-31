@@ -78,28 +78,41 @@ const refreshAccessToken = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({ error: 'El Refresh Token es requerido.' });
         }
-    
+
         const payload = validateRefreshToken(refreshToken);
         if (!payload) {
-            return res.status(403).json({ error: 'Refresh Token inválido.' });
+            return res.status(403).json({ error: 'Refresh Token inválido o expirado.' });
         }
-    
+
         const user = await User.findById(payload.id);
-        if (!user || !user.refreshTokens.some(t => t.token === refreshToken)) {
+        if (!user) {
+            return res.status(403).json({ error: 'Usuario no encontrado.' });
+        }
+
+        // Filtrar tokens expirados
+        user.refreshTokens = user.refreshTokens.filter(t => new Date(t.expiresAt) > new Date());
+
+        // Verificar si el refreshToken sigue siendo válido
+        const validToken = user.refreshTokens.find(t => t.token === refreshToken);
+        if (!validToken) {
             return res.status(403).json({ error: 'Refresh Token no válido.' });
         }
-    
+
+        // Generar nuevos tokens
         const newAccessToken = generateJWT(user.id, user.role);
-        const newRefreshToken = generateRefreshToken(user.id);
-    
+        const { token: newRefreshToken, expiresAt } = generateRefreshToken(user.id);
+
+        // Reemplazar el token viejo por el nuevo
         user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
-        user.refreshTokens.push({ token: newRefreshToken });
+        user.refreshTokens.push({ token: newRefreshToken, expiresAt });
+
+        // Mantener máximo 5 tokens por usuario
         if (user.refreshTokens.length > 5) {
             user.refreshTokens.shift();
         }
-    
+
         await user.save();
-    
+
         res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
