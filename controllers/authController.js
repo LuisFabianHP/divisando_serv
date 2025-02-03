@@ -22,7 +22,7 @@ const register = async (req, res, next) => {
             email,
             password, 
             provider: 'local',
-            refreshTokens: []
+            refreshTokens: ''
         });
 
         // Generar tokens
@@ -30,7 +30,7 @@ const register = async (req, res, next) => {
         const refreshToken = generateRefreshToken(user.id);
         
         // Guardar el Refresh Token
-        user.refreshTokens.push({ token: refreshToken });
+        user.refreshToken = refreshToken;
         await user.save();
 
         res.status(201).json({ token, refreshToken });
@@ -56,10 +56,7 @@ const login = async (req, res, next) => {
         const refreshToken = generateRefreshToken(user.id);
     
         // Almacenar el Refresh Token
-        user.refreshTokens.push({ token: refreshToken });
-        if (user.refreshTokens.length > 5) {
-            user.refreshTokens.shift();
-        }
+        user.refreshToken = refreshToken;
         await user.save();
     
         res.status(200).json({ accessToken, refreshToken });

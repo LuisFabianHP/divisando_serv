@@ -1,12 +1,17 @@
 const jwt = require('jsonwebtoken');
 
 // Genera un Refresh Token con expiración
-const generateRefreshToken = (userId) => {
-  const token = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: '7d' }); // Expira en 7 días
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // Sumar 7 días
-
-  return { token, expiresAt };
+const generateRefreshToken = (id) => {
+  try {
+    const payload = { id };
+    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Valor por defecto de 7 días
+    });
+    return refreshToken;
+  } catch (error) {
+    console.error('Error al generar el Refresh Token:', error);
+    throw error; // Lanza el error para manejarlo en el controlador
+  }
 };
 
 // Validar un Refresh Token
