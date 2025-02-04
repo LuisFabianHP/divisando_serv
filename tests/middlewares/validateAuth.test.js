@@ -1,6 +1,8 @@
 const request = require('supertest');
 const app = require('../../app');
 const User = require('../../models/User');
+const ExchangeRate = require('../../models/ExchangeRate');
+const AvailableCurrencies = require('../../models/AvailableCurrencies');
 const  generateJWT = require('../../utils/generateJWT');
 const { generateRefreshToken } = require('../../utils/refreshToken');
 const mongoose = require('mongoose');
@@ -20,6 +22,8 @@ beforeAll(async () => {
     
     // Limpiar la colección de usuarios (por si acaso)
     await User.deleteMany({});
+    await ExchangeRate.deleteMany({});
+    await AvailableCurrencies.deleteMany({});
 
     // Crear un usuario de prueba
     const hashedPassword = await bcrypt.hash('password123', 10);
@@ -36,6 +40,19 @@ beforeAll(async () => {
     refreshToken = generateRefreshToken(user.id);
     user.refreshToken = refreshToken;
     await user.save();
+
+    // Insertar datos en ExchangeRate
+    await ExchangeRate.insertMany([
+        { base_currency: 'USD', rates: [{ currency: 'MXN', value: 20.5 }], updatedAt: new Date() },
+        { base_currency: 'EUR', rates: [{ currency: 'USD', value: 1.1 }], updatedAt: new Date() }
+    ]);
+
+    // Insertar datos en AvailableCurrencies
+    await AvailableCurrencies.insertMany([
+        { currency: 'USD', name: 'US Dollar' },
+        { currency: 'MXN', name: 'Mexican Peso' },
+        { currency: 'EUR', name: 'Euro' }
+    ]);
 });
 
 describe('Autenticación y manejo de tokens', () => {
