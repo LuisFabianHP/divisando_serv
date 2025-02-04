@@ -22,18 +22,18 @@ const register = async (req, res, next) => {
             email,
             password, 
             provider: 'local',
-            refreshTokens: ''
+            refreshToken: '' // Inicialmente vacío
         });
 
         // Generar tokens
-        const token = generateJWT(user.id, user.role);
+        const accessToken = generateJWT(user.id, user.role);
         const refreshToken = generateRefreshToken(user.id);
         
         // Guardar el Refresh Token
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(201).json({ token, refreshToken });
+        res.status(201).json({ accessToken, refreshToken });
     } catch (error) {
         apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
         next(error);
@@ -55,7 +55,7 @@ const login = async (req, res, next) => {
         const accessToken = generateJWT(user.id, user.role);
         const refreshToken = generateRefreshToken(user.id);
     
-        // Almacenar el Refresh Token
+        // Sobrescribir el Refresh Token anterior
         user.refreshToken = refreshToken;
         await user.save();
     
@@ -75,41 +75,24 @@ const refreshAccessToken = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({ error: 'El Refresh Token es requerido.' });
         }
-
+    
         const payload = validateRefreshToken(refreshToken);
         if (!payload) {
-            return res.status(403).json({ error: 'Refresh Token inválido o expirado.' });
+            return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
-
+    
         const user = await User.findById(payload.id);
-        if (!user) {
-            return res.status(403).json({ error: 'Usuario no encontrado.' });
-        }
-
-        // Filtrar tokens expirados
-        user.refreshTokens = user.refreshTokens.filter(t => new Date(t.expiresAt) > new Date());
-
-        // Verificar si el refreshToken sigue siendo válido
-        const validToken = user.refreshTokens.find(t => t.token === refreshToken);
-        if (!validToken) {
+        if (!user || user.refreshToken !== refreshToken) {
             return res.status(403).json({ error: 'Refresh Token no válido.' });
         }
-
-        // Generar nuevos tokens
+    
         const newAccessToken = generateJWT(user.id, user.role);
-        const { token: newRefreshToken, expiresAt } = generateRefreshToken(user.id);
-
-        // Reemplazar el token viejo por el nuevo
-        user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
-        user.refreshTokens.push({ token: newRefreshToken, expiresAt });
-
-        // Mantener máximo 5 tokens por usuario
-        if (user.refreshTokens.length > 5) {
-            user.refreshTokens.shift();
-        }
-
+        const newRefreshToken = generateRefreshToken(user.id);
+    
+        // Reemplazar el Refresh Token anterior
+        user.refreshToken = newRefreshToken;
         await user.save();
-
+    
         res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
@@ -127,21 +110,19 @@ const logout = async (req, res, next) => {
             return res.status(400).json({ error: 'El Refresh Token es requerido para cerrar sesión.' });
         }
     
-        const user = await User.findOne({ 'refreshTokens.token': refreshToken });
+        const user = await User.findOne({ refreshToken });
         if (!user) {
             return res.status(403).json({ error: 'El Refresh Token no está asociado a ningún usuario.' });
         }
     
-        user.refreshTokens = user.refreshTokens.filter(t => t.token !== refreshToken);
+        user.refreshToken = '';
         await user.save();
     
         res.status(200).json({ message: 'Sesión cerrada correctamente.' });
     } catch (error) {
-
         next(error);
     }
 };
-
 module.exports = { 
     register, 
     login, 
