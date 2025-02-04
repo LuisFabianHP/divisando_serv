@@ -6,6 +6,7 @@ const { generateRefreshToken } = require('../../utils/refreshToken');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { MongoMemoryServer } = require('mongodb-memory-server');
+require('dotenv').config();
 
 let accessToken, refreshToken;
 let mongoServer;
@@ -39,29 +40,38 @@ beforeAll(async () => {
 
 describe('Autenticación y manejo de tokens', () => {
     test('Debe rechazar acceso sin token', async () => {
-        const res = await request(app).get('/exchange/currencies');
+        const res = await request(app)
+            .get('/exchange/currencies')
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0');
         expect(res.status).toBe(401);
-        expect(res.body.error).toBe('Acceso denegado. Token no proporcionado.');
+        expect(res.body.error).toBe('Acceso denegado. Token no proporcionado o mal formateado.');
     });
 
     test('Debe permitir acceso con un JWT válido', async () => {
         const res = await request(app)
             .get('/exchange/currencies')
-            .set('Authorization', `Bearer ${accessToken}`);
+            .set('Authorization', `Bearer ${accessToken}`)
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0');
         expect(res.status).toBe(200);
     });
 
     test('Debe rechazar un token inválido', async () => {
         const res = await request(app)
             .get('/exchange/currencies')
-            .set('Authorization', 'Bearer invalidtoken');
+            .set('Authorization', 'Bearer invalidtoken')
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0');
         expect(res.status).toBe(403);
-        expect(res.body.error).toBe('Token inválido o expirado.');
+        expect(res.body.error).toBe('Token inválido.');
     });
 
     test('Debe renovar el Access Token con un Refresh Token válido', async () => {
         const res = await request(app)
             .post('/auth/refresh')
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0')
             .send({ refreshToken });
         expect(res.status).toBe(200);
         expect(res.body).toHaveProperty('accessToken');
@@ -71,13 +81,19 @@ describe('Autenticación y manejo de tokens', () => {
     test('Debe rechazar un Refresh Token inválido', async () => {
         const res = await request(app)
             .post('/auth/refresh')
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0')
             .send({ refreshToken: 'invalidtoken' });
         expect(res.status).toBe(403);
         expect(res.body.error).toBe('Refresh Token inválido.');
     });
 
     test('Debe eliminar el Refresh Token al hacer logout', async () => {
-        await request(app).post('/auth/logout').send({ refreshToken });
+        await request(app)
+            .post('/auth/logout')
+            .set('x-api-key', process.env.API_KEY)
+            .set('user-agent', 'MiAplicacionMovil/1.0')
+            .send({ refreshToken });
         const user = await User.findOne({ username: 'testuser' });
         expect(user.refreshToken).toBeFalsy();
     });
