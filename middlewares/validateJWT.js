@@ -14,12 +14,21 @@ const validateJWT = (req, res, next) => {
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; 
+        req.user = decoded;
         next();
     } catch (err) {
-        const errorType = err.name === 'TokenExpiredError' ? 'Token expirado' : 'Token inválido';
-        return res.status(403).json({ error: errorType });
+        if (err.name === 'JsonWebTokenError') {
+            console.error('JWT inválido:', err.message);
+            return res.status(403).json({ error: 'Token inválido.' });
+        }
+        if (err.name === 'TokenExpiredError') {
+            console.error('JWT expirado:', err.message);
+            return res.status(403).json({ error: 'Token expirado.' });
+        }
+        console.error('Error en la validación del JWT:', err);
+        return res.status(403).json({ error: 'Algo salió mal. Por favor, intenta nuevamente.' });
     }
+    
 };
 
 module.exports = validateJWT;
