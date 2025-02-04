@@ -53,6 +53,12 @@ beforeAll(async () => {
         { currency: 'MXN', name: 'Mexican Peso' },
         { currency: 'EUR', name: 'Euro' }
     ]);
+
+    jest.spyOn(console, 'error').mockImplementation((msg) => {
+        if (!msg.includes('JWT inválido')) {
+            console.warn(msg); // Solo mostrar advertencias importantes
+        }
+    });
 });
 
 describe('Autenticación y manejo de tokens', () => {
@@ -119,4 +125,5 @@ describe('Autenticación y manejo de tokens', () => {
 afterAll(async () => {
     await mongoose.connection.close();
     await mongoServer.stop();
+    console.error.mockRestore(); // Restaurar el comportamiento normal después de las pruebas
 });
