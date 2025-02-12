@@ -12,22 +12,22 @@ const errorHandler = (err, req, res, next) => {
       message: err.message,
       stack: process.env.NODE_ENV === 'production' ? undefined : err.stack,
       route: req?.originalUrl || 'Ruta no disponible',
+      taskName: err.taskName || 'No especificado'
     };
   
     // Registrar en los logs
     if (statusCode >= 500) {
-        apiLogger.error(developerMessage); // Error crítico
+        apiLogger.error(developerMessage.message, developerMessage); // Error crítico
     } else {
-        apiLogger.warn(developerMessage);  // Advertencia
+        apiLogger.warn(developerMessage.message, developerMessage);  // Advertencia
     }
 
     // Responder al cliente
     if (!res.headersSent) {
       res.status(statusCode).json({ error: userMessage });
     } else {
-      console.error('Error fuera del flujo HTTP:', developerMessage);
+      console.error('❌ Error fuera del flujo HTTP:', developerMessage);
     }
 };
   
 module.exports = errorHandler;
-  
