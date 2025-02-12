@@ -12,18 +12,18 @@ const taskErrorHandler = (task) => async (...args) => {
     const developerMessage = {
       status: error.status || 500,
       message: error.message,
-      stack: error.stack,
       timestamp: new Date().toISOString(),
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
     };
 
-    // Log del error en el archivo correspondiente
+    // Loguear el error con prioridad adecuada
     if (developerMessage.status >= 500) {
-      taskLogger.error(JSON.stringify(developerMessage)); // Error crítico
+      taskLogger.error(developerMessage.message, developerMessage);
     } else {
-      taskLogger.info(JSON.stringify(developerMessage)); // Error menor
+      taskLogger.warn(developerMessage.message, developerMessage);
     }
 
-    // Opcional: Mostrar el error en la consola (solo para desarrollo)
+    // Opcional: Mostrar el error en la consola en modo desarrollo
     if (process.env.NODE_ENV !== 'production') {
       console.error('Error en la tarea:', developerMessage);
     }
