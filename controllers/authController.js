@@ -1,5 +1,4 @@
 const User = require('@models/User');
-const generateJWT = require('@utils/generateJWT');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { apiLogger } = require('@utils/logger');
 
@@ -11,7 +10,8 @@ const register = async (req, res, next) => {
         const { username, email, password } = req.body;
 
         // Verificar si el usuario o correo ya existe
-        if (await User.exists({ $or: [{ username }, { email }] })) {
+        const userExists = await User.findOne({ $or: [{ username }, { email }] });
+        if (userExists) {
             return res.status(400).json({ error: 'El usuario o correo ya está registrado.' });
         }
 
@@ -19,21 +19,18 @@ const register = async (req, res, next) => {
         const user = await User.create({
             username,
             email,
-            password, 
+            password,
             provider: 'local',
-            refreshToken: ''
+            refreshToken: '' // Inicialmente vacío
         });
 
-        // Generar tokens
-        const accessToken = generateJWT(user.id, user.role);
-        const refreshToken = generateRefreshToken(user.id);
-        
-        // Guardar el Refresh Token
-        await User.findByIdAndUpdate(user.id, { refreshToken });
+        // Generar y asignar Refresh Token
+        user.refreshToken = generateRefreshToken(user.id);
+        await user.save();
 
-        res.status(201).json({ accessToken, refreshToken });
+        res.status(201).json({ refreshToken: user.refreshToken });
     } catch (error) {
-        apiLogger.error('Error al registrar usuario', { message: error.message, stack: error.stack });
+        apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
@@ -49,22 +46,20 @@ const login = async (req, res, next) => {
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
-
-        const accessToken = generateJWT(user.id, user.role);
-        const refreshToken = generateRefreshToken(user.id);
     
-        // Guardar el Refresh Token
-        await User.findByIdAndUpdate(user.id, { refreshToken });
-
-        res.status(200).json({ accessToken, refreshToken });
+        // Regenerar y asignar Refresh Token
+        user.refreshToken = generateRefreshToken(user.id);
+        await user.save();
+    
+        res.status(200).json({ refreshToken: user.refreshToken });
     } catch (error) {
-        apiLogger.error('Error en login', { message: error.message, stack: error.stack });
+        apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
 
 /**
- * Endpoint para renovar Access Token.
+ * Endpoint para renovar Access Token
  */
 const refreshAccessToken = async (req, res, next) => {
     try {
@@ -72,32 +67,30 @@ const refreshAccessToken = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({ error: 'El Refresh Token es requerido.' });
         }
-
+    
         const payload = validateRefreshToken(refreshToken);
         if (!payload) {
             return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
-
+    
         const user = await User.findById(payload.id);
         if (!user || user.refreshToken !== refreshToken) {
             return res.status(403).json({ error: 'Refresh Token no válido.' });
         }
-
-        const newAccessToken = generateJWT(user.id, user.role);
-        const newRefreshToken = generateRefreshToken(user.id);
-
-        // Reemplazar el Refresh Token
-        await User.findByIdAndUpdate(user.id, { refreshToken: newRefreshToken });
-
-        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    
+        // Regenerar Refresh Token y devolverlo
+        user.refreshToken = generateRefreshToken(user.id);
+        await user.save();
+    
+        res.status(200).json({ refreshToken: user.refreshToken });
     } catch (error) {
-        apiLogger.error('Error en refresh token', { message: error.message, stack: error.stack });
+        apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
 
 /**
- * Endpoint para cerrar la sesión.
+ * Endpoint para cerrar la sesión
  */
 const logout = async (req, res, next) => {
     try {
@@ -105,18 +98,16 @@ const logout = async (req, res, next) => {
         if (!refreshToken) {
             return res.status(400).json({ error: 'El Refresh Token es requerido para cerrar sesión.' });
         }
-
-        // Eliminar solo si coincide
-        const result = await User.findOneAndUpdate(
-            { refreshToken },
-            { refreshToken: '' },
-            { new: true }
-        );
-
-        if (!result) {
+    
+        const user = await User.findOne({ refreshToken });
+        if (!user) {
             return res.status(403).json({ error: 'El Refresh Token no está asociado a ningún usuario.' });
         }
-
+    
+        // Eliminar Refresh Token
+        user.refreshToken = '';
+        await user.save();
+    
         res.status(200).json({ message: 'Sesión cerrada correctamente.' });
     } catch (error) {
         apiLogger.error('Error en logout', { message: error.message, stack: error.stack });
