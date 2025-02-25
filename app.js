@@ -50,6 +50,9 @@ app.use((req, res, next) => {
   next(error);
 });
 
+// Omitir /favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Middlewares manejo de errores
 app.use(errorHandler);
 
