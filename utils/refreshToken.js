@@ -9,8 +9,8 @@ const { apiLogger } = require('@utils/logger');
 const generateRefreshToken = (id) => {
   try {
     const payload = { id };
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Por defecto 7 días
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d', // Por defecto 7 días
     });
     return refreshToken;
   } catch (error) {
@@ -27,7 +27,7 @@ const generateRefreshToken = (id) => {
  */
 const validateRefreshToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     apiLogger.warn('Refresh Token inválido o expirado', { error: error.message });
     throw new Error('Refresh Token inválido o expirado.');
