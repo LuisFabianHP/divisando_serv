@@ -28,7 +28,7 @@ connectDB().then(() => {
       updateExchangeRates(); 
     });
   } else {
-    http.createServer(app).listen(PORT, 'localhost',() => {
+    http.createServer(app).listen(PORT, process.env.API_DOMAINS_TEST,() => {
       console.log(`🛠️  ${API_NAME}  -  Servidor HTTP de PRUEBAS corriendo...`);
       // Iniciar el cron job
       updateExchangeRates(); 
