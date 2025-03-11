@@ -94,6 +94,7 @@ const getComparisonData = async (req, res, next) => {
       targetCurrency: target,
       currentRate,
       previousRate,
+      updatedAt: baseData.updatedAt,
       status,
     });
   } catch (error) {
