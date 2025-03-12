@@ -1,16 +1,30 @@
 const jwt = require('jsonwebtoken');
+const { apiLogger } = require('@utils/logger');
 
-// Generar un token JWT
+/**
+ * Genera un token JWT para autenticación.
+ * @param {string} id - ID del usuario.
+ * @param {string} role - Rol del usuario.
+ * @returns {string|null} Token JWT generado o null en caso de error.
+ */
 const generateJWT = (id, role) => {
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('Falta la clave JWT_SECRET en las variables de entorno.');
+    }
+
     const payload = { id, role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h', // Valor por defecto de 1 hora
+    return jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '1h', // Tiempo de expiración configurable
     });
-    return token;
+
   } catch (error) {
-    console.error('Error al generar el JWT:', error);
-    throw error; // Lanza el error para que sea manejado por el controlador
+    apiLogger.error({
+      message: 'Error al generar el JWT',
+      error: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+    });
+    return null; // Retorna null en lugar de lanzar el error
   }
 };
 

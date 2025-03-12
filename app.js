@@ -3,13 +3,16 @@ require('dotenv').config();
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+//Middlewares
 const errorHandler = require('@middlewares/errorHandler');
 const validateApiKey = require('@middlewares/validateApiKey');
 const validateUserAgent = require('@middlewares/validateUserAgent'); 
 const apiRateLimiter = require('@middlewares/rateLimiter');
-
+//Requerimientos passaport
+const passport = require('passport');
+require('@config/passportGoogle');
+require('@config/passportFacebook');
 const app = express();
-
 // Importando la rutas
 const exchangeRoutes = require('@routes/exchangeRoutes');
 const authRoutes = require('@routes/authRoutes');
@@ -36,6 +39,9 @@ app.use('/exchange', apiRateLimiter);
 app.use('/exchange', exchangeRoutes);
 app.use('/auth', authRoutes);
 
+//Esto carga las estrategias y hace que Passport esté disponible en la API.
+app.use(passport.initialize());
+
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
   const error = new Error(`Ruta no encontrada: ${req.originalUrl}`);
@@ -43,6 +49,9 @@ app.use((req, res, next) => {
   error.userMessage = 'La ruta solicitada no existe.';
   next(error);
 });
+
+// Omitir /favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Middlewares manejo de errores
 app.use(errorHandler);
