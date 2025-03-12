@@ -1,25 +1,36 @@
 const jwt = require('jsonwebtoken');
+const { apiLogger } = require('@utils/logger');
 
-// Genera un Refresh Token con expiración
+/**
+ * Genera un Refresh Token con expiración.
+ * @param {string} id - ID del usuario.
+ * @returns {string} - Refresh Token generado.
+ */
 const generateRefreshToken = (id) => {
   try {
     const payload = { id };
-    const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d', // Valor por defecto de 7 días
+    const refreshToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d', // Por defecto 7 días
     });
     return refreshToken;
   } catch (error) {
-    console.error('Error al generar el Refresh Token:', error);
-    throw error; // Lanza el error para manejarlo en el controlador
+    apiLogger.error('Error al generar el Refresh Token', { error: error.message });
+    throw new Error('No se pudo generar el Refresh Token.');
   }
 };
 
-// Validar un Refresh Token
+/**
+ * Valida un Refresh Token.
+ * @param {string} token - Refresh Token recibido.
+ * @returns {Object} - Payload decodificado si es válido.
+ * @throws {Error} - Lanza error si el token no es válido o expiró.
+ */
 const validateRefreshToken = (token) => {
   try {
-    return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    return null;
+    apiLogger.warn('Refresh Token inválido o expirado', { error: error.message });
+    throw new Error('Refresh Token inválido o expirado.');
   }
 };
 

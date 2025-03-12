@@ -7,7 +7,15 @@ const validateApiKey = (req, res, next) => {
     if (!apiKey) {
         const error = new Error('Clave API faltante. Acceso denegado.');
         error.status = 401;
-        apiLogger.error({ message: error.message, route: req.originalUrl });
+        error.taskName = 'validateApiKey';
+
+        // Registrar en logs como advertencia (no error crítico)
+        apiLogger.warn({
+            taskName: error.taskName,
+            message: error.message,
+            route: req.originalUrl,
+        });
+
         return next(error);
     }
 
@@ -15,7 +23,15 @@ const validateApiKey = (req, res, next) => {
     if (apiKey !== process.env.API_KEY) {
         const error = new Error('Clave API inválida. Acceso denegado.');
         error.status = 403;
-        apiLogger.error({ message: error.message, route: req.originalUrl });
+        error.taskName = 'validateApiKey';
+
+        // Registrar en logs como advertencia (no error crítico)
+        apiLogger.warn({
+            taskName: error.taskName,
+            message: error.message,
+            route: req.originalUrl,
+        });
+
         return next(error);
     }
 

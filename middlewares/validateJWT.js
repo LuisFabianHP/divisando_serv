@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { apiLogger } = require('@utils/logger');
 
 /**
  * Middleware para validar el token JWT.
@@ -6,8 +7,16 @@ const jwt = require('jsonwebtoken');
 const validateJWT = (req, res, next) => {
     const authHeader = req.headers['authorization'];
 
+    // Validar si el header de autorización existe y está bien formado
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado o mal formateado.' });
+        const error = {
+            taskName: 'validateJWT',
+            status: 401,
+            message: 'Acceso denegado. Token no proporcionado o mal formateado.',
+            route: req.originalUrl
+        };
+        apiLogger.warn(error);
+        return res.status(401).json({ error: error.message });
     }
 
     const token = authHeader.split(' ')[1];
@@ -17,18 +26,22 @@ const validateJWT = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
+        let errorResponse = {
+            taskName: 'validateJWT',
+            status: 403,
+            message: 'Algo salió mal. Por favor, intenta nuevamente.',
+            route: req.originalUrl
+        };
+
         if (err.name === 'JsonWebTokenError') {
-            console.error('JWT inválido:', err.message);
-            return res.status(403).json({ error: 'Token inválido.' });
+            errorResponse.message = 'Token inválido.';
+        } else if (err.name === 'TokenExpiredError') {
+            errorResponse.message = 'Token expirado.';
         }
-        if (err.name === 'TokenExpiredError') {
-            console.error('JWT expirado:', err.message);
-            return res.status(403).json({ error: 'Token expirado.' });
-        }
-        console.error('Error en la validación del JWT:', err);
-        return res.status(403).json({ error: 'Algo salió mal. Por favor, intenta nuevamente.' });
+
+        apiLogger.error(errorResponse);
+        return res.status(403).json({ error: errorResponse.message });
     }
-    
 };
 
 module.exports = validateJWT;

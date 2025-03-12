@@ -1,5 +1,4 @@
 const User = require('@models/User');
-const generateJWT  = require('@utils/generateJWT');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { apiLogger } = require('@utils/logger');
 
@@ -20,20 +19,16 @@ const register = async (req, res, next) => {
         const user = await User.create({
             username,
             email,
-            password, 
+            password,
             provider: 'local',
             refreshToken: '' // Inicialmente vacío
         });
 
-        // Generar tokens
-        const accessToken = generateJWT(user.id, user.role);
-        const refreshToken = generateRefreshToken(user.id);
-        
-        // Guardar el Refresh Token
-        user.refreshToken = refreshToken;
+        // Generar y asignar Refresh Token
+        user.refreshToken = generateRefreshToken(user.id);
         await user.save();
 
-        res.status(201).json({ accessToken, refreshToken });
+        res.status(201).json({ refreshToken: user.refreshToken });
     } catch (error) {
         apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
         next(error);
@@ -52,14 +47,11 @@ const login = async (req, res, next) => {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
     
-        const accessToken = generateJWT(user.id, user.role);
-        const refreshToken = generateRefreshToken(user.id);
-    
-        // Sobrescribir el Refresh Token anterior
-        user.refreshToken = refreshToken;
+        // Regenerar y asignar Refresh Token
+        user.refreshToken = generateRefreshToken(user.id);
         await user.save();
     
-        res.status(200).json({ accessToken, refreshToken });
+        res.status(200).json({ refreshToken: user.refreshToken });
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         next(error);
@@ -86,14 +78,11 @@ const refreshAccessToken = async (req, res, next) => {
             return res.status(403).json({ error: 'Refresh Token no válido.' });
         }
     
-        const newAccessToken = generateJWT(user.id, user.role);
-        const newRefreshToken = generateRefreshToken(user.id);
-    
-        // Reemplazar el Refresh Token anterior
-        user.refreshToken = newRefreshToken;
+        // Regenerar Refresh Token y devolverlo
+        user.refreshToken = generateRefreshToken(user.id);
         await user.save();
     
-        res.status(200).json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+        res.status(200).json({ refreshToken: user.refreshToken });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         next(error);
@@ -115,14 +104,17 @@ const logout = async (req, res, next) => {
             return res.status(403).json({ error: 'El Refresh Token no está asociado a ningún usuario.' });
         }
     
+        // Eliminar Refresh Token
         user.refreshToken = '';
         await user.save();
     
         res.status(200).json({ message: 'Sesión cerrada correctamente.' });
     } catch (error) {
+        apiLogger.error('Error en logout', { message: error.message, stack: error.stack });
         next(error);
     }
 };
+
 module.exports = { 
     register, 
     login, 

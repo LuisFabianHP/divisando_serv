@@ -10,3 +10,4 @@ logs/
 openssl.cnf
 server.cert
 server.key
+.vscode
