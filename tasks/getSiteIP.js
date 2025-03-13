@@ -1,17 +1,15 @@
 const express = require('express');
 const axios = require('axios');
-const app = express();
-const port = process.env.PORT || 3000;
+const router = express.Router(); // Usamos un router en lugar de `app`
 
-app.get('/mi-ip', async (req, res) => {
+router.get('/get-ip', async (req, res) => {
   try {
     const respuesta = await axios.get('https://api.ipify.org?format=json');
-    res.send(`La IP pública del servidor es: ${respuesta.data.ip}`);
+    //`La IP pública del servidor es: ${respuesta.data.ip}`
+    res.json({ ip: respuesta.data.ip });
   } catch (error) {
-    res.status(500).send('No se pudo obtener la IP pública.');
+    res.status(500).json({ error: 'No se pudo obtener la IP pública.' });
   }
 });
 
-app.listen(port, () => {
-  console.log(`Servidor en ejecución en el puerto ${port}`);
-});
+module.exports = router;
