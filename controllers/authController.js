@@ -24,11 +24,15 @@ const register = async (req, res, next) => {
             refreshToken: '' // Inicialmente vacío
         });
 
-        // Generar y asignar Refresh Token
-        user.refreshToken = generateRefreshToken(user.id);
-        await user.save();
+        // Generar Refresh Token y calcular fecha de expiración
+        const refreshToken = generateRefreshToken(user.id);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7)); // 7 días por defecto
 
-        res.status(201).json({ refreshToken: user.refreshToken });
+        user.refreshToken = refreshToken;
+        await user.save();
+    
+        res.status(200).json({ refreshToken, expiresAt });
     } catch (error) {
         apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
         next(error);
@@ -46,12 +50,17 @@ const login = async (req, res, next) => {
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
+
+        // Generar Refresh Token y calcular fecha de expiración
+        const refreshToken = generateRefreshToken(user.id);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7)); // 7 días por defecto
     
         // Regenerar y asignar Refresh Token
-        user.refreshToken = generateRefreshToken(user.id);
+        user.refreshToken = refreshToken;
         await user.save();
     
-        res.status(200).json({ refreshToken: user.refreshToken });
+        res.status(200).json({ refreshToken, expiresAt });
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         next(error);
