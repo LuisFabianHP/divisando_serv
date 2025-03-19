@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema(
         refreshToken: { 
             type: String 
         },
+        isVerified: { 
+            type: Boolean, 
+            default: false 
+        } 
     },
     {
         collection: 'User', // Nombre de la colección en MongoDB

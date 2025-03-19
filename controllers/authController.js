@@ -1,4 +1,5 @@
 const User = require('@models/User');
+const VerificationCode = require('@models/VerificationCode');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { apiLogger } = require('@utils/logger');
 
@@ -10,7 +11,7 @@ const register = async (req, res, next) => {
         const { username, email, password } = req.body;
 
         // Verificar si el usuario o correo ya existe
-        const userExists = await User.findOne({ $or: [{ username }, { email }] });
+        const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ error: 'El usuario o correo ya está registrado.' });
         }
@@ -21,15 +22,46 @@ const register = async (req, res, next) => {
             email,
             password,
             provider: 'local',
-            refreshToken: '' // Inicialmente vacío
+            refreshToken: ''
         });
 
+        // Generar código de verificación
+        await generateVerificationCode(user._id);
+
+        res.status(200).json({ userId: user.id });
+    } catch (error) {
+        apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ error: 'Error al registrar la cuenta de usuario.' });
+    }
+};
+
+/**
+ * Verificar código de nuevos usuarios.
+ */
+const verificationCode  = async (req, res, next) => {
+    try {
+        const { code, userId } = req.body;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+
+        const verificationCode = await VerificationCode.findOne({ userId, code, type: 'account_verification' });
+        if (!verificationCode || verificationCode.expiresAt < new Date()) {
+            return res.status(400).json({ error: 'Código inválido o expirado.' });
+        }
+
+        // Eliminar código y actualizar usuario
+        await VerificationCode.deleteOne({ _id: verificationCode._id });
+
         // Generar Refresh Token y calcular fecha de expiración
-        const refreshToken = generateRefreshToken(user.id);
+        const refreshToken = generateRefreshToken(userId);
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7)); // 7 días por defecto
 
         user.refreshToken = refreshToken;
+        user.isVerified = true;
         await user.save();
     
         res.status(200).json({ refreshToken, expiresAt });
@@ -124,9 +156,69 @@ const logout = async (req, res, next) => {
     }
 };
 
+/**
+ * Generar y guardar código de verificación.
+ */
+const generateVerificationCode = async (userId) => {
+    try {
+        // Revisar si ya existe un código válido
+        const existingCode = await VerificationCode.findOne({ userId, type: 'account_verification' });
+        if (existingCode) {
+            return;
+        }
+
+        const code = crypto.randomInt(100000, 999999).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expira en 5 min
+
+        await VerificationCode.create({ 
+            userId, 
+            code, 
+            expiresAt,
+            type: 'account_verification' 
+        });
+        
+        // TODO: Enviar código por correo
+
+        return;
+    } catch(error){
+        apiLogger.error(`Error al generar el código de verificación: ${error.message}`, { stack: error.stack });
+        throw new Error('Error al intentar generar el código de verificación.');     
+    }
+
+};
+
+/**
+ * Reenviar código de verificación.
+ */
+const resendVerificationCode = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+
+        // Solo permitir reenvío si no hay un código activo
+        const existingCode = await VerificationCode.findOne({ userId: user._id, type: 'account_verification' });
+        if (existingCode && existingCode.expiresAt > new Date()) {
+            return res.status(400).json({ error: 'Ya existe un código válido. Intenta más tarde.' });
+        }
+
+        await generateVerificationCode(user._id);
+
+        res.status(200).json({ message: 'Nuevo código de verificación enviado.' });
+    } catch (error) {
+        apiLogger.error(`Error en reenvío de código: ${error.message}`, { stack: error.stack });
+        next(error);
+    }
+};
+
 module.exports = { 
     register, 
     login, 
     refreshAccessToken, 
-    logout 
+    logout,
+    verificationCode,
+    resendVerificationCode
 };
