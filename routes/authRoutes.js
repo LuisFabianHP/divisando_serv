@@ -1,6 +1,13 @@
 const express = require('express');
 const passport = require('passport');
-const { login, register, refreshAccessToken, logout } = require('@controllers/authController');
+const { 
+    login, 
+    register, 
+    refreshAccessToken, 
+    logout,
+    verificationCode, 
+    resendVerificationCode  
+} = require('@controllers/authController');
 const { generateRefreshToken } = require('@utils/refreshToken');
 const User = require('@models/User'); // Necesario para actualizar el refreshToken en la BD
 const { apiLogger } = require('@utils/logger');
@@ -26,6 +33,7 @@ const handleOAuthCallback = async (req, res) => {
 
 // Rutas principales de autenticación
 router.post('/register', register);
+router.post('/verification', verificationCode);
 router.post('/login', login);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
