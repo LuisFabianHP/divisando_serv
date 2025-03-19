@@ -26,10 +26,11 @@
     "mongoose": "^8.5.4",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
-    "supertest": "^7.0.0",
+    "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
+    "supertest": "^7.0.0",
     "winston": "^3.17.0"
   },
   "devDependencies": {
@@ -44,6 +45,7 @@
     "@routes": "./routes",
     "@utils": "./utils",
     "@tasks": "./tasks",
+    "@services": "./services",
     "@tests": "./tests"
   }
 }
