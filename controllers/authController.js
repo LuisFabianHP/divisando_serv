@@ -1,6 +1,7 @@
 const User = require('@models/User');
 const VerificationCode = require('@models/VerificationCode');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
+const { sendVerificationEmail } = require('@services/emailService.js');
 const { apiLogger } = require('@utils/logger');
 
 /**
@@ -26,7 +27,7 @@ const register = async (req, res, next) => {
         });
 
         // Generar código de verificación
-        await generateVerificationCode(user._id);
+        await generateVerificationCode(user._id, email);
 
         res.status(200).json({ userId: user.id });
     } catch (error) {
@@ -159,7 +160,7 @@ const logout = async (req, res, next) => {
 /**
  * Generar y guardar código de verificación.
  */
-const generateVerificationCode = async (userId) => {
+const generateVerificationCode = async (userId, email) => {
     try {
         // Revisar si ya existe un código válido
         const existingCode = await VerificationCode.findOne({ userId, type: 'account_verification' });
@@ -167,7 +168,7 @@ const generateVerificationCode = async (userId) => {
             return;
         }
 
-        const code = crypto.randomInt(100000, 999999).toString();
+        const code = (Math.floor(100000 + Math.random() * 900000)).toString();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expira en 5 min
 
         await VerificationCode.create({ 
@@ -177,8 +178,8 @@ const generateVerificationCode = async (userId) => {
             type: 'account_verification' 
         });
         
-        // TODO: Enviar código por correo
-
+        // Enviar el código por correo
+        await sendVerificationEmail(email, code);
         return;
     } catch(error){
         apiLogger.error(`Error al generar el código de verificación: ${error.message}`, { stack: error.stack });
