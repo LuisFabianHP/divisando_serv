@@ -10,7 +10,9 @@ const {
     refreshAccessToken, 
     logout,
     verificationCode, 
-    resendVerificationCode  
+    resendVerificationCode,
+    forgotPassword,
+    resetPassword
 } = require('@controllers/authController');
 
 /**
@@ -36,8 +38,10 @@ router.post('/register', register);
 router.post('/login', login);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
-router.post('/verification', verificationCode);
-router.post('/resendCode', resendVerificationCode);
+router.post('/code/verification', verificationCode);
+router.post('/code/resend', resendVerificationCode);
+router.post('/password/forgot', forgotPassword);
+router.post('/password/reset', resetPassword);
 
 // Rutas de autenticación con Google
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

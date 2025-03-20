@@ -162,21 +162,8 @@ const logout = async (req, res, next) => {
  */
 const generateVerificationCode = async (userId, email) => {
     try {
-        // Revisar si ya existe un código válido
-        const existingCode = await VerificationCode.findOne({ userId, type: 'account_verification' });
-        if (existingCode) {
-            return;
-        }
-
-        const code = (Math.floor(100000 + Math.random() * 900000)).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expira en 5 min
-
-        await VerificationCode.create({ 
-            userId, 
-            code, 
-            expiresAt,
-            type: 'account_verification' 
-        });
+        // Revisar si ya existe un código activo
+        const code = await generateAndStoreVerificationCode(userId, 'account_verification');
         
         // Enviar el código por correo
         await sendVerificationEmail(email, code);
@@ -215,11 +202,86 @@ const resendVerificationCode = async (req, res, next) => {
     }
 };
 
+const forgotPassword = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+        console.log(`🔍 Solicitud de recuperación para: ${email}`);
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+
+        // Revisar si ya existe un código activo
+        const code = await generateAndStoreVerificationCode(user._id, 'password_reset');
+
+        await sendVerificationEmail(user.email, code);
+
+        res.status(200).json({ message: 'Código de recuperación enviado.' });
+    } catch (error) {
+        apiLogger.error(`Error en recuperación de contraseña: ${error.message}`, { stack: error.stack });
+        next(error);
+    }
+};
+
+const resetPassword = async (req, res, next) => {
+    try {
+        const { email, code, newPassword } = req.body;
+        console.log(`🔑 Intento de recuperación para: ${email}`);
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ error: 'Usuario no encontrado.' });
+        }
+
+        const verificationCode = await VerificationCode.findOne({ userId: user._id, code, type: 'password_reset' });
+        if (!verificationCode || verificationCode.expiresAt < new Date()) {
+            return res.status(400).json({ error: 'Código inválido o expirado.' });
+        }
+
+        // Eliminar código después de usarlo
+        await VerificationCode.deleteOne({ _id: verificationCode._id });
+
+        // Cifrar la nueva contraseña
+        user.password = newPassword;
+        await user.save();
+
+        console.log(`✅ Contraseña restablecida correctamente.`);
+        res.status(200).json({ message: 'Contraseña restablecida correctamente.' });
+    } catch (error) {
+        apiLogger.error(`Error al restablecer contraseña: ${error.message}`, { stack: error.stack });
+        next(error);
+    }
+};
+
+const generateAndStoreVerificationCode = async (userId, type) => {
+    try {
+        // Revisar si ya existe un código activo
+        const existingCode = await VerificationCode.findOne({ userId, type });
+        if (existingCode && existingCode.expiresAt > new Date()) {
+            throw new Error('Ya existe un código válido. Intenta más tarde.');
+        }
+
+        // Generar nuevo código de 6 dígitos
+        const code = (Math.floor(100000 + Math.random() * 900000)).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Expira en 5 min
+
+        await VerificationCode.create({ userId, code, expiresAt, type });
+
+        return code;
+    } catch (error) {
+        apiLogger.error(`Error al generar código de verificación (${type}): ${error.message}`, { stack: error.stack });
+        throw new Error('Error al generar el código de verificación.');
+    }
+};
+
 module.exports = { 
     register, 
     login, 
     refreshAccessToken, 
     logout,
     verificationCode,
-    resendVerificationCode
+    resendVerificationCode,
+    forgotPassword,
+    resetPassword
 };
