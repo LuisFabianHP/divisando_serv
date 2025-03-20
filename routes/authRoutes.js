@@ -1,5 +1,9 @@
 const express = require('express');
+const router = express.Router();
 const passport = require('passport');
+const User = require('@models/User');
+const { generateRefreshToken } = require('@utils/refreshToken');
+const { apiLogger } = require('@utils/logger');
 const { 
     login, 
     register, 
@@ -8,10 +12,6 @@ const {
     verificationCode, 
     resendVerificationCode  
 } = require('@controllers/authController');
-const { generateRefreshToken } = require('@utils/refreshToken');
-const User = require('@models/User'); // Necesario para actualizar el refreshToken en la BD
-const { apiLogger } = require('@utils/logger');
-const router = express.Router();
 
 /**
  * Manejador de Callback para OAuth (Google/Facebook)
@@ -33,10 +33,11 @@ const handleOAuthCallback = async (req, res) => {
 
 // Rutas principales de autenticación
 router.post('/register', register);
-router.post('/verification', verificationCode);
 router.post('/login', login);
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
+router.post('/verification', verificationCode);
+router.post('/resendCode', resendVerificationCode);
 
 // Rutas de autenticación con Google
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

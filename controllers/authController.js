@@ -193,8 +193,8 @@ const generateVerificationCode = async (userId, email) => {
  */
 const resendVerificationCode = async (req, res, next) => {
     try {
-        const { email } = req.body;
-        const user = await User.findOne({ email });
+        const { userId, email } = req.body;
+        const user = await User.findOne({ _id: userId });
 
         if (!user) {
             return res.status(404).json({ error: 'Usuario no encontrado.' });
@@ -203,10 +203,10 @@ const resendVerificationCode = async (req, res, next) => {
         // Solo permitir reenvío si no hay un código activo
         const existingCode = await VerificationCode.findOne({ userId: user._id, type: 'account_verification' });
         if (existingCode && existingCode.expiresAt > new Date()) {
-            return res.status(400).json({ error: 'Ya existe un código válido. Intenta más tarde.' });
+            return res.status(400).json({ error: 'Ya existe un código válido, revisa tu correo o intenta en 5 min.' });
         }
 
-        await generateVerificationCode(user._id);
+        await generateVerificationCode(user._id, email);
 
         res.status(200).json({ message: 'Nuevo código de verificación enviado.' });
     } catch (error) {
