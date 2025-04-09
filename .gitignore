@@ -4,7 +4,8 @@ node_modules/
 * - copia.*
 *-copia.*
 .env
-.env.*
+.env*.
+*.env
 logs/
 .cert
 .key

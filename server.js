@@ -16,7 +16,7 @@ connectDB()
   if (isProduction) {
     console.log(`🚀 ${API_NAME} - Servidor corriendo en \x1b[35mMODO PRODUCCIÓN\x1b[0m`);
   } else {
-    dotenv.config({ path: '.env.development' });
+    dotenv.config({ path: 'development.env' });
     console.log(`🛠️  ${API_NAME} - Servidor corriendo en \x1b[34mMODO DESARROLLO\x1b[0m`);
   }
 
