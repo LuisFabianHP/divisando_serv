@@ -6,6 +6,12 @@ const AvailableCurrencies = require('@models/AvailableCurrencies');
 const { taskLogger } = require('@utils/logger');
 const taskErrorHandler = require('@middlewares/taskErrorHandler');
 
+// Código de error HTTP para indicar que se ha excedido el límite de solicitudes permitido por la API
+const RATE_LIMIT_ERROR = 429;
+
+// Cron schedule para ejecutar la tarea de actualización de tasas de cambio cada hora
+const CRON_SCHEDULE = '0 * * * *';
+
 // Selección de monedas (configurable)
 const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
 
@@ -19,19 +25,36 @@ async function isCurrencyRecentlyFetched(currency) {
 
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
-      createdAt: { $gte: oneHourAgo }, // Comparar con una hora atrás
-    }).exec();
+      createdAt: { $gte: oneHourAgo },
+    });
 
-    if (!recentRecord) {
-      taskLogger.info(`No hay registros recientes para ${currency}.`);
-      return false;
+    if (recentRecord) {
+      taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
+      return true;
     }
 
-    taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
-    return true;
+    taskLogger.info(`No hay registros recientes para ${currency}.`);
+    return false;
   } catch (error) {
     taskLogger.error(`Error al verificar registros recientes para ${currency}: ${error.message}`);
-    return false; // Asumir que no fue actualizada para evitar omitir actualizaciones.
+    return false;
+  }
+}
+
+/**
+ * Maneja errores de la API.
+ */
+function handleApiError(error, baseCurrency) {
+  if (error.response && error.response.status === RATE_LIMIT_ERROR) {
+    taskLogger.warn(
+      `Error 429: Demasiadas solicitudes. Se ha alcanzado el límite de peticiones permitido por la API.`
+    );
+    throw { status: RATE_LIMIT_ERROR, message: 'Demasiadas solicitudes' };
+  } else {
+    taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`, {
+      stack: error.stack,
+    });
+    throw error;
   }
 }
 
@@ -64,19 +87,11 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       date: new Date(response.data.time_last_update_utc),
     });
 
-    taskLogger.info(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
+    taskLogger.info(
+      `Tasas de cambio para ${baseCurrency} guardadas exitosamente. Total de tasas: ${rates.length}.`
+    );
   } catch (error) {
-    if (error.response && error.response.status === 429) {
-      taskLogger.warn(
-        `Error 429: Demasiadas solicitudes. El usuario ha enviado demasiadas solicitudes en un período de tiempo. Esto está relacionado con esquemas de limitación de solicitudes.`
-      );
-      throw { status: 429, message: 'Demasiadas solicitudes' }; // Lanzar un error con estatus 429
-    } else {
-      taskLogger.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}: ${error.message}`, {
-        stack: error.stack,
-      });
-      throw error; // Lanzar otros errores para que sean manejados
-    }
+    handleApiError(error, baseCurrency);
   }
 }
 
@@ -90,16 +105,17 @@ async function updateCurrencyList() {
     const currenciesSet = new Set(latestRecords.map(record => record.base_currency));
     const currencies = Array.from(currenciesSet);
 
-    // Usar el modelo de Mongoose
-    await AvailableCurrencies.deleteMany({});
-    await AvailableCurrencies.create({ currencies });
+    await AvailableCurrencies.updateOne(
+      {},
+      { $set: { currencies } },
+      { upsert: true }
+    );
 
     taskLogger.info('Lista de monedas disponibles actualizada exitosamente.');
   } catch (error) {
     taskLogger.error(`Error al actualizar la lista de monedas disponibles: ${error.message}`);
   }
 }
-
 
 /**
  * Cron job para actualizar tasas de cambio.
@@ -119,7 +135,7 @@ async function updateExchangeRates() {
       try {
         await fetchExchangeRatesForCurrency(baseCurrency);
       } catch (error) {
-        if (error.status === 429) {
+        if (error.status === RATE_LIMIT_ERROR) {
           taskLogger.warn(`Error 429 detectado. El proceso de extracción se detubo debido al límite de peticiones.`);
           return; // Detener todo el proceso inmediatamente
         } else {
@@ -128,7 +144,7 @@ async function updateExchangeRates() {
       }
     }
 
-    // Actualizar la lista de monedas disponibles solo si no hubo error 429
+    // Actualizar la lista de monedas disponibles
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
@@ -136,6 +152,6 @@ async function updateExchangeRates() {
 }
 
 // Programar el cron job (cada hora)
-cron.schedule('0 * * * *', updateExchangeRates);
+cron.schedule(CRON_SCHEDULE, updateExchangeRates);
 
 module.exports = taskErrorHandler(updateExchangeRates);
