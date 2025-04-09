@@ -45,13 +45,13 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
     const API_KEY = process.env.EXCHANGE_RATE_API_KEY;
     const API_URL = process.env.EXCHANGE_RATE_API_URL;
 
-    // Validar que la URL de la API y la clave estén configuradas
     if (!API_KEY || !API_URL) {
-      taskLogger.error('La URL de la API o la clave de la API no están configuradas. Verifica las variables de entorno.');
+      taskLogger.error('La URL de la API o la clave de la API no están configuradas.');
       return;
     }
 
     const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`);
+    taskLogger.info(`Respuesta de la API para ${baseCurrency}:`, response.data);
 
     const rates = Object.entries(response.data.conversion_rates).map(([currency, value]) => ({
       currency,
@@ -63,10 +63,18 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       rates,
       date: new Date(response.data.time_last_update_utc),
     });
-    
+
     taskLogger.info(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
   } catch (error) {
-    taskLogger.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}:`, error.message);
+    if (error.response && error.response.status === 429) {
+      taskLogger.warn(
+        `Error 429: Demasiadas solicitudes. El usuario ha enviado demasiadas solicitudes en un período de tiempo. Esto está relacionado con esquemas de limitación de solicitudes.`
+      );
+    } else {
+      taskLogger.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}: ${error.message}`, {
+        stack: error.stack,
+      });
+    }
   }
 }
 
