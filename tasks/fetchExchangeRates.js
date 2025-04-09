@@ -103,9 +103,8 @@ async function updateCurrencyList() {
  * Cron job para actualizar tasas de cambio.
  */
 async function updateExchangeRates() {
-
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
-  
+
   try {
     for (const baseCurrency of selectedCurrencies) {
       const recentlyFetched = await isCurrencyRecentlyFetched(baseCurrency);
@@ -115,10 +114,21 @@ async function updateExchangeRates() {
         continue;
       }
 
-      await fetchExchangeRatesForCurrency(baseCurrency);
+      try {
+        await fetchExchangeRatesForCurrency(baseCurrency);
+      } catch (error) {
+        if (error.response && error.response.status === 429) {
+          taskLogger.warn(
+            `Error 429: Demasiadas solicitudes. Se ha alcanzado el límite de peticiones permitido por la API. Deteniendo el proceso de extracción.`
+          );
+          break; // Detener el proceso si se detecta un error 429
+        } else {
+          taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`);
+        }
+      }
     }
 
-    // Actualizar la lista de monedas disponibles después de la extracción
+    // Actualizar la lista de monedas disponibles después de la extracción (si no hubo error 429)
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
