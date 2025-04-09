@@ -70,10 +70,12 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       taskLogger.warn(
         `Error 429: Demasiadas solicitudes. El usuario ha enviado demasiadas solicitudes en un período de tiempo. Esto está relacionado con esquemas de limitación de solicitudes.`
       );
+      throw { status: 429, message: 'Demasiadas solicitudes' }; // Lanzar un error con estatus 429
     } else {
       taskLogger.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}: ${error.message}`, {
         stack: error.stack,
       });
+      throw error; // Lanzar otros errores para que sean manejados
     }
   }
 }
@@ -117,18 +119,16 @@ async function updateExchangeRates() {
       try {
         await fetchExchangeRatesForCurrency(baseCurrency);
       } catch (error) {
-        if (error.response && error.response.status === 429) {
-          taskLogger.warn(
-            `Error 429: Demasiadas solicitudes. Se ha alcanzado el límite de peticiones permitido por la API. Deteniendo el proceso de extracción.`
-          );
-          break; // Detener el proceso si se detecta un error 429
+        if (error.status === 429) {
+          taskLogger.warn(`Error 429 detectado. El proceso de extracción se detubo debido al límite de peticiones.`);
+          return; // Detener todo el proceso inmediatamente
         } else {
           taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`);
         }
       }
     }
 
-    // Actualizar la lista de monedas disponibles después de la extracción (si no hubo error 429)
+    // Actualizar la lista de monedas disponibles solo si no hubo error 429
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
