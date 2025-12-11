@@ -16,7 +16,8 @@ const CRON_SCHEDULE = '0 * * * *';
 const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
 
 /**
- * Verifica si una moneda tiene registros recientes (última hora).
+ * Verifica si una moneda tiene registros recientes (hoy).
+ * Compara la fecha completa, no solo la hora.
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
@@ -26,7 +27,7 @@ async function isCurrencyRecentlyFetched(currency) {
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
       createdAt: { $gte: oneHourAgo },
-    });
+    }).sort({ createdAt: -1 });
 
     if (recentRecord) {
       taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
@@ -128,7 +129,7 @@ async function updateExchangeRates() {
       const recentlyFetched = await isCurrencyRecentlyFetched(baseCurrency);
 
       if (recentlyFetched) {
-        taskLogger.info(`La moneda ${baseCurrency} ya fue actualizada recientemente. Saltando...`);
+        taskLogger.info('Saltando...');
         continue;
       }
 
