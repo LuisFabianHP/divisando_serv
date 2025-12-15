@@ -41,33 +41,46 @@ const register = async (req, res, next) => {
  */
 const verificationCode  = async (req, res, next) => {
     try {
-        const { code, userId } = req.body;
+        const { code, userId, email } = req.body;
 
-        const user = await User.findById(userId);
+        // Buscar usuario por userId o por email
+        const user = userId ? await User.findById(userId) : await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
         }
 
-        const verificationCode = await VerificationCode.findOne({ userId, code, type: 'account_verification' });
+        // Buscar el código sin filtrar por tipo para soportar account_verification y password_reset
+        const verificationCode = await VerificationCode.findOne({ userId: user._id, code });
         if (!verificationCode || verificationCode.expiresAt < new Date()) {
-            return res.status(400).json({ error: 'Código inválido o expirado.' });
+            return res.status(400).json({ success: false, error: 'Código inválido o expirado.' });
         }
 
-        // Eliminar código y actualizar usuario
+        // Eliminar código después de usarlo
         await VerificationCode.deleteOne({ _id: verificationCode._id });
 
-        // Generar Refresh Token y calcular fecha de expiración
-        const refreshToken = generateRefreshToken(userId);
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7)); // 7 días por defecto
+        // Comportamientos distintos según el tipo de código
+        if (verificationCode.type === 'account_verification') {
+            // Generar Refresh Token y calcular fecha de expiración
+            const refreshToken = generateRefreshToken(user.id);
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7)); // 7 días por defecto
 
-        user.refreshToken = refreshToken;
-        user.isVerified = true;
-        await user.save();
-    
-        res.status(200).json({ refreshToken, expiresAt });
+            user.refreshToken = refreshToken;
+            user.isVerified = true;
+            await user.save();
+
+            return res.status(200).json({ success: true, refreshToken, expiresAt });
+        }
+
+        if (verificationCode.type === 'password_reset') {
+            // Para reset de contraseña devolvemos éxito y datos mínimos para continuar en cliente
+            return res.status(200).json({ success: true, userId: user.id, email: user.email });
+        }
+
+        // Si por alguna razón el tipo no está reconocido
+        res.status(400).json({ success: false, error: 'Tipo de código no reconocido.' });
     } catch (error) {
-        apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
+        apiLogger.error(`Error en verificación de código: ${error.message}`, { stack: error.stack });
         next(error);
     }
 };
@@ -184,18 +197,18 @@ const resendVerificationCode = async (req, res, next) => {
         const user = await User.findOne({ _id: userId });
 
         if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
         }
 
         // Solo permitir reenvío si no hay un código activo
         const existingCode = await VerificationCode.findOne({ userId: user._id, type: 'account_verification' });
         if (existingCode && existingCode.expiresAt > new Date()) {
-            return res.status(400).json({ error: 'Ya existe un código válido, revisa tu correo o intenta en 5 min.' });
+            return res.status(400).json({ success: false, error: 'Ya existe un código válido, revisa tu correo o intenta en 5 min.' });
         }
 
         await generateVerificationCode(user._id, email);
 
-        res.status(200).json({ message: 'Nuevo código de verificación enviado.' });
+        res.status(200).json({ success: true, message: 'Nuevo código de verificación enviado.' });
     } catch (error) {
         apiLogger.error(`Error en reenvío de código: ${error.message}`, { stack: error.stack });
         next(error);
@@ -217,7 +230,8 @@ const forgotPassword = async (req, res, next) => {
 
         await sendVerificationEmail(user.email, code);
 
-        res.status(200).json({ message: 'Código de recuperación enviado.' });
+        // Devolver userId opcional para que la UI pueda reutilizarlo si es necesario
+        res.status(200).json({ success: true, message: 'Código de recuperación enviado.', userId: user.id });
     } catch (error) {
         apiLogger.error(`Error en recuperación de contraseña: ${error.message}`, { stack: error.stack });
         next(error);
@@ -247,7 +261,7 @@ const resetPassword = async (req, res, next) => {
         await user.save();
 
         console.log(`✅ Contraseña restablecida correctamente.`);
-        res.status(200).json({ message: 'Contraseña restablecida correctamente.' });
+        res.status(200).json({ success: true, message: 'Contraseña restablecida correctamente.' });
     } catch (error) {
         apiLogger.error(`Error al restablecer contraseña: ${error.message}`, { stack: error.stack });
         next(error);
