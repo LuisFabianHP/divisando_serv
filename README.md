@@ -95,3 +95,13 @@ El sistema ha sido diseñado con seguridad y escalabilidad en mente. Próximas m
 - Integración con proveedores de autenticación externos como Google y Facebook.
 
 📌 **Última actualización:** Enero 2025
+
+---
+
+## 🛠️ Cambios recientes (API de autenticación)
+
+- `POST /auth/password/forgot`: ahora devuelve `{ success: true, message, userId }` cuando se encuentra el usuario, para que el cliente pueda reutilizar `userId` si lo desea.
+- `POST /auth/code/verification`: acepta tanto `userId` como `email` en el body; para `account_verification` devuelve `{ success: true, refreshToken, expiresAt }`, y para `password_reset` devuelve `{ success: true, userId, email }` (sin emitir token).
+- `POST /auth/password/reset`: ahora devuelve `{ success: true, message }` al restablecer la contraseña correctamente.
+
+Estos cambios están pensados para alinear la API con la UI móvil que reutiliza la pantalla de verificación tanto para registro como para recuperación de contraseña.
