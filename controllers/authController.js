@@ -55,11 +55,10 @@ const verificationCode  = async (req, res, next) => {
             return res.status(400).json({ success: false, error: 'Código inválido o expirado.' });
         }
 
-        // Eliminar código después de usarlo
-        await VerificationCode.deleteOne({ _id: verificationCode._id });
-
         // Comportamientos distintos según el tipo de código
         if (verificationCode.type === 'account_verification') {
+            // Eliminar código y generar Refresh Token y calcular fecha de expiración
+            await VerificationCode.deleteOne({ _id: verificationCode._id });
             // Generar Refresh Token y calcular fecha de expiración
             const refreshToken = generateRefreshToken(user.id);
             const expiresAt = new Date();
