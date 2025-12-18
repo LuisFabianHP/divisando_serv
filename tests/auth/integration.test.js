@@ -1,5 +1,5 @@
 const moduleAlias = require('module-alias');
-const pkg = require('../package.json');
+const pkg = require('../../package.json');
 moduleAlias.addAliases(pkg._moduleAliases || {});
 process.env.NODE_ENV = 'test';
 process.env.API_KEY = process.env.API_KEY || 'test-api-key';
@@ -7,8 +7,8 @@ process.env.API_ALLOWED_USER_AGENTS = 'DivisandoApp/1.0';
 
 const request = require('supertest');
 // Mock emailService BEFORE importing app so controllers don't call real external services
-jest.mock('../services/emailService', () => ({ sendVerificationEmail: jest.fn().mockResolvedValue() }));
-const app = require('../app');
+jest.mock('../../services/emailService', () => ({ sendVerificationEmail: jest.fn().mockResolvedValue() }));
+const app = require('../../app');
 const { connectDB, closeDB } = require('@config/database');
 const User = require('@models/User');
 const VerificationCode = require('@models/VerificationCode');
