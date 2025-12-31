@@ -5,7 +5,9 @@ const User = require('@models/User');
 const { generateRefreshToken } = require('@utils/refreshToken');
 const { apiLogger } = require('@utils/logger');
 const { 
-    login, 
+    login,
+    loginWithGoogle,
+    loginWithApple,
     register, 
     refreshAccessToken, 
     logout,
@@ -36,6 +38,8 @@ const handleOAuthCallback = async (req, res) => {
 // Rutas principales de autenticación
 router.post('/register', register);
 router.post('/login', login);
+router.post('/google', loginWithGoogle); // Endpoint para mobile/Flutter (Google)
+router.post('/apple', loginWithApple); // Endpoint para mobile/Flutter (Apple)
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
 router.post('/code/verification', verificationCode);
@@ -43,7 +47,7 @@ router.post('/code/resend', resendVerificationCode);
 router.post('/password/forgot', forgotPassword);
 router.post('/password/reset', resetPassword);
 
-// Rutas de autenticación con Google
+// Rutas de autenticación con Google (web)
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { session: false }), handleOAuthCallback);
 

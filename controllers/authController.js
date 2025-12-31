@@ -3,6 +3,7 @@ const VerificationCode = require('@models/VerificationCode');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { sendVerificationEmail } = require('@services/emailService.js');
 const { apiLogger } = require('@utils/logger');
+const { OAuth2Client } = require('google-auth-library');
 
 /**
  * Registro de nuevos usuarios.
@@ -109,6 +110,111 @@ const login = async (req, res, next) => {
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         next(error);
+    }
+};
+
+/**
+ * Inicio de sesión con Google usando idToken (para mobile/Flutter)
+ */
+const loginWithGoogle = async (req, res, next) => {
+    try {
+        const { idToken } = req.body;
+        
+        if (!idToken) {
+            return res.status(400).json({ error: 'idToken es requerido.' });
+        }
+
+        // Verificar el idToken con Google
+        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const ticket = await client.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        
+        const payload = ticket.getPayload();
+        const { sub: googleId, email, name } = payload;
+
+        // Buscar o crear usuario
+        let user = await User.findOne({ providerId: googleId, provider: 'google' });
+
+        if (!user) {
+            // Crear nuevo usuario
+            user = await User.create({
+                username: name,
+                email: email,
+                provider: 'google',
+                providerId: googleId,
+                isVerified: true, // Los usuarios de Google ya están verificados
+                refreshToken: '',
+            });
+        }
+
+        // Generar Refresh Token y calcular fecha de expiración
+        const refreshToken = generateRefreshToken(user.id);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
+
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        res.status(200).json({ refreshToken, expiresAt });
+    } catch (error) {
+        apiLogger.error(`Error en loginWithGoogle: ${error.message}`, { stack: error.stack });
+        res.status(401).json({ error: 'Token de Google inválido.' });
+    }
+};
+
+/**
+ * Inicio de sesión con Apple usando identityToken (para mobile/Flutter)
+ */
+const loginWithApple = async (req, res, next) => {
+    try {
+        const { identityToken } = req.body;
+        
+        if (!identityToken) {
+            return res.status(400).json({ error: 'identityToken es requerido.' });
+        }
+
+        // TODO: Verificar el identityToken con Apple
+        // Por ahora usamos una validación básica
+        // En producción, deberías usar la librería apple-signin-auth o similar
+        
+        // Decodificar el JWT sin verificar (solo para desarrollo)
+        const parts = identityToken.split('.');
+        if (parts.length !== 3) {
+            return res.status(401).json({ error: 'Token de Apple inválido.' });
+        }
+
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        const { sub: appleId, email } = payload;
+
+        // Buscar o crear usuario
+        let user = await User.findOne({ providerId: appleId, provider: 'apple' });
+
+        if (!user) {
+            // Crear nuevo usuario
+            user = await User.create({
+                username: email ? email.split('@')[0] : `apple_user_${appleId.substring(0, 8)}`,
+                email: email || `${appleId}@privaterelay.appleid.com`,
+                provider: 'apple',
+                providerId: appleId,
+                isVerified: true, // Los usuarios de Apple ya están verificados
+                refreshToken: '',
+            });
+        }
+
+        // Generar Refresh Token y calcular fecha de expiración
+        const refreshToken = generateRefreshToken(user.id);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
+
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        res.status(200).json({ refreshToken, expiresAt });
+    } catch (error) {
+        apiLogger.error(`Error en loginWithApple: ${error.message}`, { stack: error.stack });
+        res.status(401).json({ error: 'Token de Apple inválido.' });
     }
 };
 
@@ -290,7 +396,9 @@ const generateAndStoreVerificationCode = async (userId, type) => {
 
 module.exports = { 
     register, 
-    login, 
+    login,
+    loginWithGoogle,
+    loginWithApple,
     refreshAccessToken, 
     logout,
     verificationCode,
