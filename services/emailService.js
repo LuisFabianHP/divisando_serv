@@ -32,4 +32,45 @@ const sendVerificationEmail = async (email, code) => {
     }
 };
 
-module.exports = { sendVerificationEmail };
+/**
+ * Envía un correo de confirmación cuando se restablece la contraseña.
+ * @param {string} email - Correo del usuario.
+ * @param {string} username - Nombre de usuario.
+ */
+const sendPasswordChangedEmail = async (email, username) => {
+    try {
+        const mailOptions = {
+            from: `"Divisando" <noreply@${domain}>`,
+            to: email,
+            subject: '🔐 Contraseña Restablecida Exitosamente',
+            text: `Hola ${username},\n\nTu contraseña ha sido restablecida exitosamente.\n\nSi no realizaste este cambio, contacta inmediatamente a soporte.\n\nSaludos,\nEquipo Divisando`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #2c3e50;">🔐 Contraseña Restablecida</h2>
+                    <p>Hola <strong>${username}</strong>,</p>
+                    <p>Tu contraseña ha sido <strong>restablecida exitosamente</strong>.</p>
+                    <p>Ahora puedes iniciar sesión con tu nueva contraseña.</p>
+                    <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 20px 0;">
+                        <p style="margin: 0;"><strong>⚠️ Aviso de Seguridad:</strong></p>
+                        <p style="margin: 5px 0 0 0;">Si no realizaste este cambio, contacta inmediatamente a nuestro equipo de soporte.</p>
+                    </div>
+                    <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
+                        Este es un mensaje automático. No respondas a este correo.
+                    </p>
+                    <p style="color: #7f8c8d; font-size: 12px;">
+                        Saludos,<br>
+                        <strong>Equipo Divisando</strong>
+                    </p>
+                </div>
+            `
+        };
+
+        await client.messages.create(domain, mailOptions);
+        console.log(`📧 Confirmación de cambio de contraseña enviada a ${email}`);
+    } catch (error) {
+        console.error(`❌ Error al enviar correo de confirmación: ${error.message}`);
+        // No lanzamos error para no bloquear el flujo de resetPassword
+    }
+};
+
+module.exports = { sendVerificationEmail, sendPasswordChangedEmail };
