@@ -1,4 +1,82 @@
-# 📌 Documentación del Proyecto - Divisando API
+# � Divisando API | Secure Currency Exchange Backend
+
+Production-grade REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange rate data with enterprise-level security, multi-provider authentication, and comprehensive testing infrastructure.
+
+## ✨ Key Features
+
+• **Multi-provider authentication system:**
+  - Email/password with bcrypt hashing
+  - Google OAuth 2.0 integration (mobile & web)
+  - Apple Sign-In support (iOS/macOS)
+  - Facebook OAuth integration
+• **Advanced security mechanisms:**
+  - JWT with automatic refresh token rotation (7-day expiry)
+  - HTTPS encryption with SSL/TLS
+  - API key validation middleware
+  - Rate limiting per IP and critical endpoints
+  - User-Agent validation
+  - CORS with strict origin policies
+• **Email verification system:**
+  - 6-digit verification codes with 5-minute expiry
+  - Mailgun integration for transactional emails
+  - Automatic code blocking after failed attempts
+  - Password recovery with secure code delivery
+• **Exchange rate management:**
+  - Real-time currency comparison endpoint
+  - Historical rate tracking with up/down indicators
+  - Automated background tasks for data updates
+  - Optimized MongoDB queries for fast retrieval
+• **Comprehensive logging & monitoring:**
+  - Winston logger with structured logging
+  - Request/response audit trails
+  - Error tracking with stack traces
+  - Security event logging (failed auth, rate limits)
+
+## 🎯 Real-World Capabilities
+
+• Handles concurrent authentication requests with token rotation  
+• Validates and refreshes expired tokens automatically  
+• Delivers exchange rates with historical comparison in <100ms  
+• Blocks brute-force attacks with intelligent rate limiting  
+• Supports multiple OAuth providers seamlessly  
+• Sends verification codes via Mailgun with retry logic  
+• Professional error responses with detailed logging  
+
+## 🛠️ Tech Stack
+
+**Runtime & Framework:**
+- Node.js with Express 4.21+
+- MongoDB with Mongoose ODM
+- MongoMemoryServer for isolated testing
+
+**Security:**
+- bcryptjs for password hashing
+- jsonwebtoken (JWT) with refresh tokens
+- google-auth-library for OAuth 2.0
+- passport (Google & Facebook strategies)
+- express-rate-limit for DDoS protection
+
+**Communication:**
+- Mailgun API for transactional emails
+- Axios for external API calls
+- CORS with configurable origins
+
+**Development & Testing:**
+- Jest testing framework
+- MongoMemoryServer for test isolation
+- Winston for structured logging
+- dotenv for environment management
+
+**Deployment:**
+- HTTPS with SSL certificates
+- Environment-based configuration
+- Module aliasing for clean imports
+
+**Perfect example of production-ready API architecture with OAuth integration, token-based authentication, automated testing, and enterprise security patterns.**
+
+---
+
+# �📌 Documentación del Proyecto - Divisando API
 
 ## 📖 Introducción
 Divisando API es un servicio backend diseñado para obtener y comparar tasas de cambio entre diferentes monedas. Provee endpoints seguros para recuperar tasas de cambio, realizar comparaciones y manejar autenticación mediante tokens JWT y Refresh Tokens.

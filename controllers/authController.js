@@ -296,8 +296,12 @@ const refreshAccessToken = async (req, res, next) => {
         // Regenerar Refresh Token y devolverlo
         user.refreshToken = generateRefreshToken(user.id);
         await user.save();
+        
+        // Calcular fecha de expiración (misma lógica que en login)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
     
-        res.status(200).json({ refreshToken: user.refreshToken });
+        res.status(200).json({ refreshToken: user.refreshToken, expiresAt });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         next(error);
