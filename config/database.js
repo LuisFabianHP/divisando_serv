@@ -69,7 +69,7 @@ const isCircuitBreakerOpen = () => {
   return true;
 };
 
-const connectDB = async (retries = 5, initialDelay = 3000) => {
+const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 10000) => {
   // Verificar circuit breaker
   if (isCircuitBreakerOpen()) {
     const waitTime = Math.round((CIRCUIT_BREAKER_TIMEOUT - (Date.now() - lastConnectionAttempt)) / 1000);
@@ -95,8 +95,8 @@ const connectDB = async (retries = 5, initialDelay = 3000) => {
       
       // Configurar timeout en la conexión
       const conn = await mongoose.connect(mongoUri, {
-        serverSelectionTimeoutMS: 10000, // 10 segundos para selección de servidor
-        socketTimeoutMS: 45000, // 45 segundos para operaciones
+        serverSelectionTimeoutMS: connectionTimeout, // Configurable para tests
+        socketTimeoutMS: connectionTimeout * 4.5, // 45 segundos por defecto
       });
 
       console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
@@ -189,4 +189,13 @@ const getConnectionStatus = async () => {
   return status;
 };
 
-module.exports = { connectDB, closeDB, getConnectionStatus };
+/**
+ * Resetea el estado de la conexión y circuit breaker (útil para tests)
+ */
+const resetConnectionState = () => {
+  connectionStatus = 'disconnected';
+  consecutiveFailures = 0;
+  lastConnectionAttempt = null;
+};
+
+module.exports = { connectDB, closeDB, getConnectionStatus, resetConnectionState };
