@@ -130,6 +130,21 @@ Devuelve la lista de monedas disponibles.
 #### `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 Devuelve el valor actual y el anterior de una moneda, con estado `up` o `dw`.
 
+### **Salud del servicio**
+#### `GET /health`
+Verifica que la API esté activa. **Público** (sin autenticación).
+
+#### `GET /health/database`
+Verifica el estado de MongoDB (conectividad, latencia y circuit breaker).
+**Protegido con API key** en `x-api-key`.
+
+**Ejemplo:**
+```bash
+curl -H "x-api-key: <TU_API_KEY>" https://tu-dominio.com/api/health/database
+```
+
+**Nota:** Asegura que `API_KEY` este configurada en el entorno (local y produccion).
+
 ---
 
 ## 🔍 Pruebas con Base de Datos en Memoria
