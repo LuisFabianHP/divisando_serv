@@ -1,10 +1,26 @@
 const express = require('express');
-const passport = require('passport');
-const { login, register, refreshAccessToken, logout } = require('@controllers/authController');
-const { generateRefreshToken } = require('@utils/refreshToken');
-const User = require('@models/User'); // Necesario para actualizar el refreshToken en la BD
-const { apiLogger } = require('@utils/logger');
 const router = express.Router();
+const passport = require('passport');
+const User = require('@models/User');
+const { generateRefreshToken } = require('@utils/refreshToken');
+const { apiLogger } = require('@utils/logger');
+const { 
+    verificationCodeLimiter,
+    forgotPasswordLimiter,
+    resendCodeLimiter
+} = require('@middlewares/verificationRateLimiter');
+const { 
+    login,
+    loginWithGoogle,
+    loginWithApple,
+    register, 
+    refreshAccessToken, 
+    logout,
+    verificationCode, 
+    resendVerificationCode,
+    forgotPassword,
+    resetPassword
+} = require('@controllers/authController');
 
 /**
  * Manejador de Callback para OAuth (Google/Facebook)
@@ -27,10 +43,16 @@ const handleOAuthCallback = async (req, res) => {
 // Rutas principales de autenticación
 router.post('/register', register);
 router.post('/login', login);
+router.post('/google', loginWithGoogle); // Endpoint para mobile/Flutter (Google)
+router.post('/apple', loginWithApple); // Endpoint para mobile/Flutter (Apple)
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
+router.post('/code/verification', verificationCodeLimiter, verificationCode);
+router.post('/code/resend', resendCodeLimiter, resendVerificationCode);
+router.post('/password/forgot', forgotPasswordLimiter, forgotPassword);
+router.post('/password/reset', resetPassword);
 
-// Rutas de autenticación con Google
+// Rutas de autenticación con Google (web)
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback', passport.authenticate('google', { session: false }), handleOAuthCallback);
 

@@ -1,10 +1,12 @@
 node_modules/
+naturaltaks_module/
 * - copia - *
 *-copia-*
 * - copia.*
 *-copia.*
 .env
-.env.*
+.env*.
+*.env
 logs/
 .cert
 .key
