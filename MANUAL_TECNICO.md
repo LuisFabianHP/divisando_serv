@@ -119,9 +119,8 @@ Flujo principal:
 - `POST /auth/logout` => revoca refresh token.
 
 OAuth:
-- Google: `/auth/google` y `/auth/google/callback`
-- Facebook: `/auth/facebook` y `/auth/facebook/callback`
-- Apple: `/auth/apple` (token en body)
+- Google (mobile): `/auth/google`
+- Apple (mobile): `/auth/apple`
 
 ### Flujo paso a paso
 
@@ -164,10 +163,13 @@ OAuth:
 - `GET /exchange/currencies`
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
-- `GET /api/health` (publico)
-- `GET /api/health/database` (x-api-key requerido)
+- `GET /health` (publico)
+- `GET /health/database` (x-api-key requerido)
 
 Ejemplos de uso y respuestas: ver Manual de Usuario.
+
+Compatibilidad:
+- `/api/health` y `/api/health/database` se mantienen disponibles.
 
 ---
 
