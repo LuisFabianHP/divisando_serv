@@ -9,11 +9,41 @@ const taskErrorHandler = require('@middlewares/taskErrorHandler');
 // Código de error HTTP para indicar que se ha excedido el límite de solicitudes permitido por la API
 const RATE_LIMIT_ERROR = 429;
 
-// Cron schedule para ejecutar la tarea de actualización de tasas de cambio cada hora
-const CRON_SCHEDULE = '0 * * * *';
+// Cron schedule para ejecutar la tarea de actualización de tasas de cambio
+const CRON_SCHEDULE = process.env.EXCHANGE_RATE_CRON || '0 * * * *';
 
-// Selección de monedas (configurable)
-const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
+const parseCurrencyList = (value) => {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+};
+
+const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
+const DEFAULT_CURRENCIES = parseCurrencyList(process.env.EXCHANGE_RATE_CURRENCIES);
+
+const getCurrenciesFromDb = async () => {
+  const result = await AvailableCurrencies.findOne({}).lean();
+  return Array.isArray(result?.currencies) ? result.currencies : [];
+};
+
+const getSelectedCurrencies = async () => {
+  if (DEFAULT_CURRENCIES.includes('ALL')) {
+    const dbList = await getCurrenciesFromDb();
+    if (dbList.length > 0) {
+      return dbList;
+    }
+
+    taskLogger.warn('EXCHANGE_RATE_CURRENCIES=ALL sin datos en DB. Usando defaults seguros.');
+    return SAFE_DEFAULT_CURRENCIES;
+  }
+
+  return DEFAULT_CURRENCIES.length > 0 ? DEFAULT_CURRENCIES : SAFE_DEFAULT_CURRENCIES;
+};
+
+const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
+
 
 /**
  * Verifica si una moneda tiene registros recientes (hoy).
@@ -21,12 +51,13 @@ const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    const recentWindowHours = Number.isFinite(RECENT_HOURS) && RECENT_HOURS > 0 ? RECENT_HOURS : 1;
+    const since = new Date();
+    since.setHours(since.getHours() - recentWindowHours);
 
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
-      createdAt: { $gte: oneHourAgo },
+      createdAt: { $gte: since },
     }).sort({ createdAt: -1 });
 
     if (recentRecord) {
@@ -125,6 +156,8 @@ async function updateExchangeRates() {
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
 
   try {
+    const selectedCurrencies = await getSelectedCurrencies();
+
     for (const baseCurrency of selectedCurrencies) {
       const recentlyFetched = await isCurrencyRecentlyFetched(baseCurrency);
 
