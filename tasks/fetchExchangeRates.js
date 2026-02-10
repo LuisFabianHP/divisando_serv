@@ -6,32 +6,87 @@ const AvailableCurrencies = require('@models/AvailableCurrencies');
 const { taskLogger } = require('@utils/logger');
 const taskErrorHandler = require('@middlewares/taskErrorHandler');
 
-// Selección de monedas (configurable)
-const selectedCurrencies = ['USD', 'CAD', 'MXN', 'BRL', 'ARS', 'EUR'];
+// Código de error HTTP para indicar que se ha excedido el límite de solicitudes permitido por la API
+const RATE_LIMIT_ERROR = 429;
+
+// Cron schedule para ejecutar la tarea de actualización de tasas de cambio
+const CRON_SCHEDULE = process.env.EXCHANGE_RATE_CRON || '0 * * * *';
+
+const parseCurrencyList = (value) => {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((item) => item.trim().toUpperCase())
+    .filter(Boolean);
+};
+
+const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
+const DEFAULT_CURRENCIES = parseCurrencyList(process.env.EXCHANGE_RATE_CURRENCIES);
+
+const getCurrenciesFromDb = async () => {
+  const result = await AvailableCurrencies.findOne({}).lean();
+  return Array.isArray(result?.currencies) ? result.currencies : [];
+};
+
+const getSelectedCurrencies = async () => {
+  if (DEFAULT_CURRENCIES.includes('ALL')) {
+    const dbList = await getCurrenciesFromDb();
+    if (dbList.length > 0) {
+      return dbList;
+    }
+
+    taskLogger.warn('EXCHANGE_RATE_CURRENCIES=ALL sin datos en DB. Usando defaults seguros.');
+    return SAFE_DEFAULT_CURRENCIES;
+  }
+
+  return DEFAULT_CURRENCIES.length > 0 ? DEFAULT_CURRENCIES : SAFE_DEFAULT_CURRENCIES;
+};
+
+const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
+
 
 /**
- * Verifica si una moneda tiene registros recientes (última hora).
+ * Verifica si una moneda tiene registros recientes (hoy).
+ * Compara la fecha completa, no solo la hora.
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    const recentWindowHours = Number.isFinite(RECENT_HOURS) && RECENT_HOURS > 0 ? RECENT_HOURS : 1;
+    const since = new Date();
+    since.setHours(since.getHours() - recentWindowHours);
 
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
-      createdAt: { $gte: oneHourAgo }, // Comparar con una hora atrás
-    }).exec();
+      createdAt: { $gte: since },
+    }).sort({ createdAt: -1 });
 
-    if (!recentRecord) {
-      taskLogger.info(`No hay registros recientes para ${currency}.`);
-      return false;
+    if (recentRecord) {
+      taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
+      return true;
     }
 
-    taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
-    return true;
+    taskLogger.info(`No hay registros recientes para ${currency}.`);
+    return false;
   } catch (error) {
     taskLogger.error(`Error al verificar registros recientes para ${currency}: ${error.message}`);
-    return false; // Asumir que no fue actualizada para evitar omitir actualizaciones.
+    return false;
+  }
+}
+
+/**
+ * Maneja errores de la API.
+ */
+function handleApiError(error, baseCurrency) {
+  if (error.response && error.response.status === RATE_LIMIT_ERROR) {
+    taskLogger.warn(
+      `Error 429: Demasiadas solicitudes. Se ha alcanzado el límite de peticiones permitido por la API.`
+    );
+    throw { status: RATE_LIMIT_ERROR, message: 'Demasiadas solicitudes' };
+  } else {
+    taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`, {
+      stack: error.stack,
+    });
+    throw error;
   }
 }
 
@@ -45,13 +100,13 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
     const API_KEY = process.env.EXCHANGE_RATE_API_KEY;
     const API_URL = process.env.EXCHANGE_RATE_API_URL;
 
-    // Validar que la URL de la API y la clave estén configuradas
     if (!API_KEY || !API_URL) {
-      taskLogger.error('La URL de la API o la clave de la API no están configuradas. Verifica las variables de entorno.');
+      taskLogger.error('La URL de la API o la clave de la API no están configuradas.');
       return;
     }
 
     const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`);
+    taskLogger.info(`Respuesta de la API para ${baseCurrency}:`, response.data);
 
     const rates = Object.entries(response.data.conversion_rates).map(([currency, value]) => ({
       currency,
@@ -63,10 +118,12 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       rates,
       date: new Date(response.data.time_last_update_utc),
     });
-    
-    taskLogger.info(`Tasas de cambio para ${baseCurrency} guardadas exitosamente.`);
+
+    taskLogger.info(
+      `Tasas de cambio para ${baseCurrency} guardadas exitosamente. Total de tasas: ${rates.length}.`
+    );
   } catch (error) {
-    taskLogger.error(`Error al obtener o guardar tasas de cambio para ${baseCurrency}:`, error.message);
+    handleApiError(error, baseCurrency);
   }
 }
 
@@ -80,9 +137,11 @@ async function updateCurrencyList() {
     const currenciesSet = new Set(latestRecords.map(record => record.base_currency));
     const currencies = Array.from(currenciesSet);
 
-    // Usar el modelo de Mongoose
-    await AvailableCurrencies.deleteMany({});
-    await AvailableCurrencies.create({ currencies });
+    await AvailableCurrencies.updateOne(
+      {},
+      { $set: { currencies } },
+      { upsert: true }
+    );
 
     taskLogger.info('Lista de monedas disponibles actualizada exitosamente.');
   } catch (error) {
@@ -90,27 +149,36 @@ async function updateCurrencyList() {
   }
 }
 
-
 /**
  * Cron job para actualizar tasas de cambio.
  */
 async function updateExchangeRates() {
-
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
-  
+
   try {
+    const selectedCurrencies = await getSelectedCurrencies();
+
     for (const baseCurrency of selectedCurrencies) {
       const recentlyFetched = await isCurrencyRecentlyFetched(baseCurrency);
 
       if (recentlyFetched) {
-        taskLogger.info(`La moneda ${baseCurrency} ya fue actualizada recientemente. Saltando...`);
+        taskLogger.info('Saltando...');
         continue;
       }
 
-      await fetchExchangeRatesForCurrency(baseCurrency);
+      try {
+        await fetchExchangeRatesForCurrency(baseCurrency);
+      } catch (error) {
+        if (error.status === RATE_LIMIT_ERROR) {
+          taskLogger.warn(`Error 429 detectado. El proceso de extracción se detubo debido al límite de peticiones.`);
+          return; // Detener todo el proceso inmediatamente
+        } else {
+          taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`);
+        }
+      }
     }
 
-    // Actualizar la lista de monedas disponibles después de la extracción
+    // Actualizar la lista de monedas disponibles
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
@@ -118,6 +186,6 @@ async function updateExchangeRates() {
 }
 
 // Programar el cron job (cada hora)
-cron.schedule('0 * * * *', updateExchangeRates);
+cron.schedule(CRON_SCHEDULE, updateExchangeRates);
 
 module.exports = taskErrorHandler(updateExchangeRates);

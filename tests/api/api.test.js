@@ -1,0 +1,38 @@
+﻿require('dotenv').config();
+require('../setups/setupApiTests');
+const request = require('supertest');
+const app = require('../../app');
+const jwt = require('jsonwebtoken');
+
+// Forzar User-Agent permitido para pruebas predecibles
+process.env.API_ALLOWED_USER_AGENTS = 'MiAplicacionMovil/1.0';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
+const testToken = jwt.sign({ id: 'test-user', role: 'user' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+describe('Pruebas de la API', () => {
+
+  test('Debe devolver monedas disponibles', async () => {
+    const response = await request(app)
+      .get('/exchange/currencies')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'MiAplicacionMovil/1.0')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('currencies');
+  });
+
+  test('Debe comparar monedas USD y MXN', async () => {
+    const response = await request(app)
+      .get('/exchange/compare?baseCurrency=USD&targetCurrency=MXN')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'MiAplicacionMovil/1.0')
+      .set('Authorization', `Bearer ${testToken}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('baseCurrency', 'USD');
+    expect(response.body).toHaveProperty('targetCurrency', 'MXN');
+    expect(response.body).toHaveProperty('status'); // 'up' o 'dw'
+  });
+});
+

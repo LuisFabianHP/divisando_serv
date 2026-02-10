@@ -3,6 +3,7 @@ const http = require("http");
 const app = require("./app");
 const { connectDB } = require("@config/database");
 const updateExchangeRates = require("@tasks/fetchExchangeRates");
+const scheduleUserCleanup = require("@tasks/cleanupUnverifiedUsers");
 const dotenv = require('dotenv');
 const PORT = process.env.PORT || 8080;
 const API_NAME = process.env.API_NAME;
@@ -16,14 +17,15 @@ connectDB()
   if (isProduction) {
     console.log(`🚀 ${API_NAME} - Servidor corriendo en \x1b[35mMODO PRODUCCIÓN\x1b[0m`);
   } else {
-    dotenv.config({ path: '.env.development' });
+    dotenv.config({ path: 'development.env' });
     console.log(`🛠️  ${API_NAME} - Servidor corriendo en \x1b[34mMODO DESARROLLO\x1b[0m`);
   }
 
   // Iniciar servidor HTTP (Railway maneja HTTPS automáticamente)
   http.createServer(app).listen(PORT, () => {
     console.log(`✅ Servidor escuchando en el puerto \x1b[36m${PORT}\x1b[0m`);
-    updateExchangeRates(); // Mantener la tarea automática
+    updateExchangeRates(); // Tarea de actualización de tasas de cambio
+    scheduleUserCleanup(); // Tarea de limpieza de usuarios no verificados
   });
 })
 .catch((error) => {

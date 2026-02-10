@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema(
         refreshToken: { 
             type: String 
         },
+        isVerified: { 
+            type: Boolean, 
+            default: false 
+        } 
     },
     {
         collection: 'User', // Nombre de la colección en MongoDB
@@ -54,5 +58,8 @@ userSchema.pre('save', function (next) {
 userSchema.methods.matchPassword = function (enteredPassword) {
     return bcrypt.compareSync(enteredPassword, this.password);
 };
+
+// Índice compuesto para optimizar la consulta de limpieza de usuarios no verificados
+userSchema.index({ isVerified: 1, provider: 1, createdAt: 1 });
 
 module.exports = mongoose.model('User', userSchema);

@@ -16,8 +16,8 @@ const app = express();
 // Importando la rutas
 const exchangeRoutes = require('@routes/exchangeRoutes');
 const authRoutes = require('@routes/authRoutes');
+const healthRoutes = require('@routes/healthRoutes');
 const getSiteIP = require('@tasks/getSiteIP');
-
 // Configurar CORS
 const originValues = process.env.API_CROS_DOMAINS.split(',').map(item => item.trim());
 const corsOptions = {
@@ -39,6 +39,7 @@ app.use('/exchange', apiRateLimiter);
 // Rutas
 app.use('/exchange', exchangeRoutes);
 app.use('/auth', authRoutes);
+app.use('/api', healthRoutes);
 app.use('/script', getSiteIP);
 
 //Esto carga las estrategias y hace que Passport esté disponible en la API.
