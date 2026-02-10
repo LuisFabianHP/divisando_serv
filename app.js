@@ -8,10 +8,6 @@ const errorHandler = require('@middlewares/errorHandler');
 const validateApiKey = require('@middlewares/validateApiKey');
 const validateUserAgent = require('@middlewares/validateUserAgent'); 
 const apiRateLimiter = require('@middlewares/rateLimiter');
-//Requerimientos passaport
-const passport = require('passport');
-require('@config/passportGoogle');
-require('@config/passportFacebook');
 const app = express();
 // Importando la rutas
 const exchangeRoutes = require('@routes/exchangeRoutes');
@@ -41,9 +37,6 @@ app.use('/exchange', exchangeRoutes);
 app.use('/auth', authRoutes);
 app.use('/api', healthRoutes);
 app.use('/script', getSiteIP);
-
-//Esto carga las estrategias y hace que Passport esté disponible en la API.
-app.use(passport.initialize());
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
