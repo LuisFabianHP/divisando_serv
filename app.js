@@ -26,17 +26,15 @@ const corsOptions = {
 app.use(helmet()); // Seguridad básica
 app.use(cors(corsOptions));   // Manejo de CORS
 app.use(express.json()); // Parseo de JSON
-app.use(validateApiKey); // Validar clave API antes de las rutas
-app.use(validateUserAgent); // Validar User-Agent
 
-// Aplicar el middleware a todas las rutas de la API
-app.use('/exchange', apiRateLimiter); 
-
-// Rutas
-app.use('/exchange', exchangeRoutes);
-app.use('/auth', authRoutes);
+// Rutas publicas de health
+app.use('/', healthRoutes);
 app.use('/api', healthRoutes);
-app.use('/script', getSiteIP);
+
+// Rutas protegidas
+app.use('/exchange', validateApiKey, validateUserAgent, apiRateLimiter, exchangeRoutes);
+app.use('/auth', validateApiKey, validateUserAgent, authRoutes);
+app.use('/script', validateApiKey, validateUserAgent, getSiteIP);
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
