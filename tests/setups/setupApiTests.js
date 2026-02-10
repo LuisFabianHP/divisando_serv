@@ -3,6 +3,11 @@ const mongoose = require('mongoose');
 const ExchangeRate = require('../../models/ExchangeRate');
 const AvailableCurrencies = require('../../models/AvailableCurrencies');
 
+// Defaults for tests that load app.js
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
+process.env.API_KEY = process.env.API_KEY || 'test-api-key';
+process.env.API_CROS_DOMAINS = process.env.API_CROS_DOMAINS || 'http://localhost';
+
 // Conectar a la base de datos antes de todas las pruebas
 beforeAll(async () => {
   await connectDB();
