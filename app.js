@@ -15,7 +15,7 @@ const authRoutes = require('@routes/authRoutes');
 const healthRoutes = require('@routes/healthRoutes');
 const getSiteIP = require('@tasks/getSiteIP');
 // Configurar CORS
-const originValues = process.env.API_CROS_DOMAINS.split(',').map(item => item.trim());
+const originValues = (process.env.API_CROS_DOMAINS || 'http://localhost:5000').split(',').map(item => item.trim());
 const corsOptions = {
   origin: originValues, // Dominios autorizados
   methods: ['GET', 'POST'], // Métodos permitidos
