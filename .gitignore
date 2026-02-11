@@ -7,4 +7,11 @@ naturaltaks_module/
 .env
 .env.*
 *.env
+logs/
+.cert
+.key
+openssl.cnf
+server.cert
+server.key
+.vscode
 MANUAL_RAILWAY.md
