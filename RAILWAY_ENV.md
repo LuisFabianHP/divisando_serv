@@ -1,12 +1,28 @@
-# 🚂 Ambiente de Pruebas - Railway.com
+# 🚂 Railway Deployment Guide - Divisando API
 
-**Documentación de configuración y monitoreo del API de Divisando en Railway**
+**Guía completa para deploy, configuración y monitoreo en Railway.com**
 
-> 📝 **Nota**: Este archivo es específico para **Railway.com**. Para documentación general del proyecto, ver [README.md](./README.md).
+> 📝 **Nota**: Este archivo es específico para **Railway.com**. Para documentación general del proyecto, ver [README.md](./README.md) y [MANUAL_TECNICO.md](./MANUAL_TECNICO.md).
 
 ---
 
-## 📌 Información General
+## Tabla de Contenidos
+1. [Información General](#información-general)
+2. [Requisitos y Plans](#requisitos-y-plans)
+3. [Cómo Empezar (Quick Start)](#cómo-empezar-quick-start)
+4. [Variables de Entorno](#variables-de-entorno)
+5. [Deploy Automático](#deploy-automático)
+6. [Monitoreo y Logs](#monitoreo-y-logs)
+7. [Health Checks](#health-checks)
+8. [Email Service (Mailgun)](#email-service-mailgun)
+9. [Optimización de Memoria](#optimización-de-memoria)
+10. [Troubleshooting](#troubleshooting)
+11. [Escalamiento](#escalamiento)
+12. [Consideraciones de Seguridad](#consideraciones-de-seguridad)
+
+---
+
+## Información General
 
 | Concepto | Valor |
 |----------|-------|
@@ -18,28 +34,99 @@
 
 ---
 
-## 📦 Plan y Recursos (Free Plan)
+## Cómo Empezar (Quick Start)
 
-### Recursos Asignados
-- **RAM**: 0.5 GB (512 MB)
+### Paso 1: Crear Proyecto en Railway
+
+1. Ve a https://railway.app/dashboard
+2. Click en "New Project" → "Deploy from GitHub"
+3. Conecta tu repo: `LuisFabianHP/divisando_serv`
+4. Selecciona rama: `dev-api-task` (o `main` para producción)
+5. Click "Deploy Now"
+
+Railway detecta Node.js automáticamente y ejecutará:
+```bash
+npm install  # Instala dependencias
+npm start    # Inicia con flag --expose-gc
+```
+
+### Paso 2: Configurar Variables de Entorno
+
+Railway → Tu Proyecto → Variables → Agregar todas las variables de [Variables de Entorno](#variables-de-entorno)
+
+**Orden recomendado:**
+1. Variables críticas: `API_KEY`, `JWT_SECRET`, `JWT_REFRESH_SECRET`
+2. MongoDB: `MONGO_URI`
+3. APIs externas: `GOOGLE_CLIENT_ID`, `EXCHANGE_RATE_API_KEY`
+4. Email: `MAILGUN_DOMAIN`, `MAILGUN_API_KEY` (opcional)
+5. Optimización: `RATE_LIMIT_STORE_MAX_ENTRIES`, memory variables
+
+### Paso 3: Generar Secretos Seguros
+
+**Ejecuta estos comandos localmente antes de agregar a Railway:**
+
+```bash
+# JWT_SECRET (32+ caracteres)
+node -e "console.log('JWT_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+
+# JWT_REFRESH_SECRET (32+ caracteres)
+node -e "console.log('JWT_REFRESH_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+
+# API_KEY (16+ caracteres)
+node -e "console.log('API_KEY=' + require('crypto').randomBytes(16).toString('hex'))"
+```
+
+Copia los valores generados a Railway Dashboard
+
+### Paso 4: Verificar Deployment
+
+1. Railway Dashboard → Deployments
+2. Espera a que el build termine (2-3 minutos)
+3. Verifica logs para errores
+4. Test health check:
+   ```bash
+   curl https://divisando-serv-production.up.railway.app/health
+   ```
+
+---
+
+## Requisitos y Plans
+
+## Requisitos y Plans
+
+### Free Plan (Actual)
+**Recursos Asignados:**
+- **RAM**: 512 MB
 - **vCPU**: 1 (compartido)
 - **Disco**: 1 GB
-- **Límite Mensual**: $1.00 USD en créditos gratuitos
+- **Límite Mensual**: $1.00 USD en créditos
 - **Uso Actual**: $0.00 USD
 
-### Limitaciones del Free Plan
-⚠️ **Crítico para desarrollo/testing:**
-- **Memoria limitada**: 512 MB total obliga optimización
-- **CPU compartida**: Rendimiento variable según carga general
-- **Sin garantía de uptime**: Puede pausarse por inactividad
-- **1 servicio por workspace**: No puede escalar horizontalmente
+**Limitaciones:**
+- ⚠️ Memoria limitada: requiere optimización
+- ⚠️ CPU compartida: rendimiento variable
+- ⚠️ Sin garantía de uptime: puede pausarse por inactividad
+- ⚠️ 1 servicio por workspace: sin escalamiento horizontal
 
-### Escalamiento
-Para pasar a **Hobby Plan** o superior:
-- Hobby Plan: $5/mes + pago por uso
-- Incluiría: 2.5 GB RAM, 2 vCPU dedicados
-- Mejor estabilidad y performance para testing
-- Dashboard: https://railway.app/dashboard
+### Hobby Plan ($5/mes)
+**Para pre-release testing:**
+- **RAM**: 2.5 GB
+- **vCPU**: 2 (dedicados)
+- **Mejor estabilidad**: uptime superior
+- **Recomendado**: Cuando tengas usuario inicial
+
+### Pro Plan ($20/mes+)
+**Para production:**
+- **Escalabilidad automática**
+- **Analytics y monitoring**
+- **SLA garantizado**
+- **Recomendado**: Lanzamiento público
+
+### Cambiar Plan
+1. https://railway.app/account/billing
+2. Seleccionar proyecto → Upgrade
+3. Elegir plan → Confirmar
+4. Aplica en siguiente deploy
 
 ---
 
@@ -150,45 +237,108 @@ EXCHANGE_RATE_RECENT_HOURS=6
 # Producción: cada 1 hora (requeriría plan pago)
 # EXCHANGE_RATE_CRON="0 * * * *"
 # EXCHANGE_RATE_RECENT_HOURS=1
-```
-
 ---
 
-## 🚀 Deployment
+## 🚀 Deploy Automático
 
-### Build y Startup
-**Railway detecta automáticamente** Node.js y ejecuta:
-```bash
-# Build (opcional en Railway)
-npm install
+### Cómo Funciona
 
-# Start
-npm start
-```
+1. **Conexión automática con GitHub**: Railway se conecta via webhook
+2. **Triggers en cada push**: A la rama configurada (`dev-api-task` o `main`)
+3. **Build automático**: Railway detecta Node.js e instala dependencias
+4. **Startup automático**: Ejecuta `npm start`
 
-**Comando start en package.json:**
+### Comando de Arranque
+
+**En `package.json`:**
 ```json
-"start": "node --expose-gc server.js"
+{
+  "scripts": {
+    "start": "node --expose-gc server.js"
+  }
+}
 ```
 
-⚠️ **Flag --expose-gc es obligatorio** para que el Garbage Collector funcione.
+⚠️ **Flag `--expose-gc` es obligatorio** para que Garbage Collector funcione
 
 ### Rama Deployada
-- **Rama**: `dev-api-task` (rama principal de desarrollo)
-- **Alternativa testing**: `pruebas` (rama para pruebas locales)
-- **Actual en Railway**: Verifica en Railway Dashboard → Deployments
+- **Principal**: `dev-api-task` (desarrollo)
+- **Alternativa**: `main` (producción)
+- **Ver status**: Railway Dashboard → Deployments
 
-### Health Checks
-Railway configura automáticamente checks en `/health`:
-- **Intervalo**: 30 segundos
-- **Timeout**: 60 segundos
-- **Retries**: 3 intentos antes de marcar como down
+### Build Automático
+Railway ejecuta automáticamente:
+```bash
+npm install   # Instala dependencias
+npm start     # Inicia con --expose-gc flag
+```
 
 ---
 
-## 🔍 Health Checks y Endpoints
+## 📊 Monitoreo y Logs
 
-### Verificar estado del API
+### Acceso a Logs en Railway
+
+1. **Railway Dashboard**:
+   - Ir a: https://railway.app/dashboard
+   - Seleccionar proyecto → Divisando
+   - Pestaña: "Logs"
+   - Filtrar por:
+     - Rango de fecha
+     - Nivel (error, warn, info)
+
+2. **Streaming en vivo**:
+   ```bash
+   # Con Railway CLI (si está instalado)
+   railway logs --follow
+   ```
+
+### Logs Generados (Winston)
+
+**En Railway** (sistema de archivos temporal, se pierden en redeploy):
+- Accesibles via Railway Dashboard → Logs
+
+**Localmente** (para testing):
+- `logs/api.log` → Info general
+- `logs/api-errors.log` → Errores de API
+- `logs/tasks.log` → Info de cron tasks
+- `logs/task-errors.log` → Errores de tasks
+
+**Formato:**
+```
+[TIMESTAMP] [LEVEL]: [MESSAGE] [METADATA]
+
+Ejemplo:
+2026-02-11T20:15:57.673Z [INFO]: Server running on port 5000
+2026-02-11T20:16:02.891Z [WARN]: Memory usage high {"heap":"450MB/512MB"}
+2026-02-11T20:17:30.445Z [ERROR]: MongoDB connection failed {"error":"ECONNREFUSED"}
+```
+
+### Memory Monitor Task
+
+Ejecuta cada 5 minutos (configurable via `MEMORY_MONITOR_CRON`)
+
+**Registra:**
+- Heap usado/máx
+- RSS (Resident Set Size)
+- External memory
+
+**Alertas:**
+- ⚠️ Warning si heap > 80%
+- 🔴 Crítico si heap > 90%
+
+### Garbage Collector Task
+
+Ejecuta cada 30 minutos (configurable via `GC_CRON`)
+
+**Realiza:**
+- Fuerza recolección de basura
+- Reporta memoria liberada en MB
+- Requiere flag `--expose-gc` (ya incluido)
+
+---
+
+## 🔍 Health Checks
 
 **Público (sin autenticación):**
 ```bash
@@ -251,66 +401,67 @@ GET https://divisando-serv-production.up.railway.app/health/database \
 
 ---
 
-## 📊 Logs y Monitoreo
+## � Email Service (Mailgun)
 
-### Acceso a Logs en Railway
+### Modo DEMO (Sin Mailgun)
 
-1. **Railway Dashboard**:
-   - Ir a: https://railway.app/dashboard
-   - Seleccionar proyecto → Divisando
-   - Pestaña: "Logs"
-   - Filtrar por:
-     - Rango de fecha
-     - Nivel (error, warn, info)
+Si `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` no están configurados en Railway:
 
-2. **Streaming en vivo**:
-```bash
-# Railway CLI (si está instalado)
-railway logs --follow
+```
+⚠️  MAILGUN_API_KEY o MAILGUN_DOMAIN no configurados. 
+Emails se loguearán en consola.
 ```
 
-### Logs Generados (Winston)
+**En este modo:**
+- Los códigos de verificación aparecen en logs
+- No se envían realmente por email
+- El API funciona normalmente
+- Ideal para testing
 
-**Ubicación en Railway**: Sistema de archivos temporal (se pierden en redeploy)
-
-**Locales (para testing)**:
-- `logs/api.log` → Info general del API
-- `logs/api-errors.log` → Errores de API
-- `logs/tasks.log` → Info de cron tasks
-- `logs/task-errors.log` → Errores de tasks
-
-**Formatos de log**:
+**Ejemplo en logs:**
 ```
-[TIMESTAMP] [LEVEL]: [MESSAGE] [METADATA]
-
-Ejemplo:
-2026-02-10T20:15:57.673Z [INFO]: Server running on port 5000 {"service":"API"}
-2026-02-10T20:16:02.891Z [WARN]: Memory usage high {"heap":"450MB/512MB"}
-2026-02-10T20:17:30.445Z [ERROR]: MongoDB connection failed {"error":"ECONNREFUSED"}
+📋 [DEMO] Código de verificación para user@example.com: 123456 (Expira en 5 minutos)
 ```
 
-### Monitoreo de Memoria
+### Configurar Mailgun Real
 
-**Memory Monitor Task** (Cron cada 5 minutos):
-- Registra: Heap usado/máx, RSS, External memory
-- ⚠️ **Warning** si heap > 80%
-- 🔴 **Crítico** si heap > 90%
-- Logs en: `logs/tasks.log`
+**1. Registrate en Mailgun**:
+- Ve a https://www.mailgun.com/
+- Plan gratuito disponible
+- Crea un dominio sandbox: `sandboxXXXXXXXX.mailgun.org`
 
-**Garbage Collector Task** (Cron cada 30 minutos):
-- Fuerza recolección de basura
-- Reporta memoria liberada en MB
-- Requiere flag: `--expose-gc` (ya incluido en package.json)
+**2. Obtener credenciales**:
+- Dashboard → API Keys
+- Copia `MAILGUN_API_KEY` (formato: `key-XXXXXXXXXX`)
+- Copia `MAILGUN_DOMAIN` (ej: `sandbox123abc.mailgun.org`)
 
-### Métricas en Railway
+**3. Agregar a Railway**:
+- Railway Dashboard → Tu Proyecto → Variables
+- Agrega:
+  ```env
+  MAILGUN_DOMAIN=sandboxXXXXX.mailgun.org
+  MAILGUN_API_KEY=key-XXXXXXXXXX
+  ```
+- Guardar (auto-redeploy)
 
-Aunque no hay dashboard visual en Free Plan, puedes monitorear:
-- CPU usage → Railway Dashboard
-- Memory usage → Railway Dashboard
-- Requests/response times → Logs
-- Error rate → Logs
+**4. Verificar configuración**:
+- Revisa logs en Railway
+- Debe mostrar: `✅ Mailgun configurado correctamente`
+- Registra un usuario de prueba y verifica que reciba email
+
+### Troubleshooting Mailgun
+
+| Problema | Solución |
+|----------|----------|
+| "No configurados" en logs | Agregar variables en Railway Dashboard |
+| "Invalid API Key" | Verificar formato: `key-XXXXX` |
+| Email no llega | En sandbox, agregar email a "Authorized Recipients" en Mailgun |
+| Funcionando local pero no en Railway | Las variables no se sincronizaron, haz redeploy manual |
+| API key expirada | Regenerar en https://www.mailgun.com/ y actualizar Railway |
 
 ---
+
+## ⚙️ Optimización de Memoria
 
 ## 🔧 Troubleshooting Rápido
 
