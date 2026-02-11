@@ -1,13 +1,29 @@
 const mailgun = require('mailgun.js');
 const FormData = require('form-data');
 
-// Inicializar cliente de Mailgun con API Key
+// Inicializar cliente de Mailgun con API Key (si está disponible)
 const mg = new mailgun(FormData);
 const domain = process.env.MAILGUN_DOMAIN;
-const client = mg.client({ 
-    username: 'api', 
-    key: process.env.MAILGUN_API_KEY 
-});
+const apiKey = process.env.MAILGUN_API_KEY;
+
+// Flag para saber si Mailgun está configurado
+let mailgunConfigured = false;
+let client = null;
+
+if (apiKey && domain) {
+    try {
+        client = mg.client({ 
+            username: 'api', 
+            key: apiKey 
+        });
+        mailgunConfigured = true;
+        console.log('✅ Mailgun configurado correctamente');
+    } catch (err) {
+        console.warn('⚠️  Mailgun no disponible:', err.message);
+    }
+} else {
+    console.warn('⚠️  MAILGUN_API_KEY o MAILGUN_DOMAIN no configurados. Emails se loguearán en consola.');
+}
 
 /**
  * Envía un correo con el código de verificación.
@@ -16,6 +32,12 @@ const client = mg.client({
  */
 const sendVerificationEmail = async (email, code) => {
     try {
+        // Si Mailgun no está configurado, loguear en consola
+        if (!mailgunConfigured) {
+            console.log(`📧 [MODO DEMO] Código de verificación para ${email}: ${code} (Expira en 5 minutos)`);
+            return;
+        }
+
         const mailOptions = {
             from: `"Divisando" <noreply@${domain}>`,
             to: email,
@@ -39,6 +61,12 @@ const sendVerificationEmail = async (email, code) => {
  */
 const sendPasswordChangedEmail = async (email, username) => {
     try {
+        // Si Mailgun no está configurado, loguear en consola
+        if (!mailgunConfigured) {
+            console.log(`📧 [MODO DEMO] Notificación de cambio de contraseña enviada a ${email}`);
+            return;
+        }
+
         const mailOptions = {
             from: `"Divisando" <noreply@${domain}>`,
             to: email,
