@@ -53,20 +53,20 @@ PORT=5000
 NODE_ENV="production"
 
 # Seguridad
-API_KEY="@S3gUr@L0kP@sSw0rD!2o25"
+API_KEY="tu-api-key-secreto-aqui"  # Generar una clave segura de 32+ caracteres
 API_ALLOWED_USER_AGENTS="DivisandoApp/1.0"
-API_CROS_DOMAINS="http://divisando-serv-production.up.railway.app"
+API_CROS_DOMAINS="https://divisando-serv-production.up.railway.app"
 
 # JWT
-JWT_SECRET="&C1%n$8w!tTz%qPfD2^rB4g*UjE5m&9K7v^1$WfM3!@NcR6"
+JWT_SECRET="tu-jwt-secret-super-seguro-minimo-32-caracteres"  # Generar con: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 JWT_EXPIRES_IN="7d"
-JWT_REFRESH_SECRET="!pN6tWz6jD^hY*Dk2fJ3r@dA7lQ"
+JWT_REFRESH_SECRET="tu-jwt-refresh-secret-super-seguro-minimo-32-caracteres"  # Generar con: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 JWT_REFRESH_EXPIRES_IN="7d"
 ```
 
 ### Base de Datos (MongoDB Atlas)
 ```env
-MONGO_URI="mongodb+srv://divUsDev:<PASSWORD>@cluster0.hpj4zub.mongodb.net/divisandoDB?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI="mongodb+srv://divUsDev:TU_PASSWORD_AQUI@cluster0.hpj4zub.mongodb.net/divisandoDB?retryWrites=true&w=majority&appName=Cluster0"  # Reemplaza TU_PASSWORD_AQUI con credenciales reales
 ```
 
 **Detalles de conexión:**
@@ -81,12 +81,12 @@ MONGO_URI="mongodb+srv://divUsDev:<PASSWORD>@cluster0.hpj4zub.mongodb.net/divisa
 #### Exchange Rate API
 ```env
 EXCHANGE_RATE_API_URL="https://v6.exchangerate-api.com/v6/"
-EXCHANGE_RATE_API_KEY="fb5d1071f5acb7da936cbe5a"
+EXCHANGE_RATE_API_KEY="tu-api-key-de-exchangerate-api"  # Obtener en https://www.exchangerate-api.com/
 ```
 
 #### Google OAuth (Mobile/Flutter - Sin Passport)
 ```env
-GOOGLE_CLIENT_ID="530315387189-gpqqu8ovq9o408ofmt8jm6p83mssvm6u.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID="tu-google-client-id.apps.googleusercontent.com"  # Obtener de https://console.cloud.google.com/
 ```
 
 **Detalles de Google Auth:**
@@ -206,7 +206,7 @@ GET https://divisando-serv-production.up.railway.app/health
 **Con API Key (requiere header `x-api-key`):**
 ```bash
 GET https://divisando-serv-production.up.railway.app/health/database \
-  -H "x-api-key: @S3gUr@L0kP@sSw0rD!2o25"
+  -H "x-api-key: TU_API_KEY_AQUI"  # Reemplaza con tu API_KEY real
 
 # Respuesta esperada:
 {
@@ -462,21 +462,37 @@ curl https://divisando-serv-production.up.railway.app/health/database \
 ## 🔐 Consideraciones de Seguridad
 
 ⚠️ **Nunca compartir públicamente**:
-- `API_KEY` - Validación de requests
-- `JWT_SECRET` y `JWT_REFRESH_SECRET` - Firmas de tokens
-- `MONGO_URI` con credenciales - Acceso a base de datos
-- `GOOGLE_CLIENT_ID` - Usado en validación de idToken (debe protegerse)
-- `EXCHANGE_RATE_API_KEY` - Acceso a API externa
+- `API_KEY` - Validación de requests (guardar en Railway Dashboard, NUNCA en Git)
+- `JWT_SECRET` y `JWT_REFRESH_SECRET` - Firmas de tokens (guardar en Railway Dashboard, NUNCA en Git)
+- `MONGO_URI` con credenciales - Acceso a base de datos (guardar en Railway Dashboard, NUNCA en Git)
+- `GOOGLE_CLIENT_ID` - Usado en validación de idToken (puede ser público pero mantener en Railway)
+- `EXCHANGE_RATE_API_KEY` - Acceso a API externa (guardar en Railway Dashboard, NUNCA en Git)
+- `MAILGUN_API_KEY` - Acceso a servicio de email (guardar en Railway Dashboard, NUNCA en Git)
+
+### Generación de Secretos Seguros
+
+**Generar JWT_SECRET y JWT_REFRESH_SECRET** (32+ caracteres aleatorios):
+```bash
+node -e "console.log('JWT_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+node -e "console.log('JWT_REFRESH_SECRET=' + require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Generar API_KEY** (16+ caracteres aleatorios):
+```bash
+node -e "console.log('API_KEY=' + require('crypto').randomBytes(16).toString('hex'))"
+```
+
+**Mejores prácticas**:
+1. Generar nuevos secretos para cada ambiente (dev, test, prod)
+2. Rotar secretos cada 90 días
+3. Usar gestores de secretos (Vault, 1Password, etc)
+4. NUNCA loguear secretos en console.log()
+5. NUNCA commitear secretos en Git
 
 ⚠️ **YA NO UTILIZADOS** (removidos con Passport):
 - `GOOGLE_CLIENT_SECRET` - Solo para Passport web (deprecated)
 - `GOOGLE_CALLBACK_URL` - Solo para Passport web (deprecated)
 - `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` - OAuth web completo (deprecated)
-
-**Almacenar secretos en**:
-- Railway Environment Variables (cifradas)
-- `.env` local (nunca commitear)
-- Gestores de secretos (Vault, AWS Secrets Manager, etc)
 
 ---
 

@@ -261,30 +261,6 @@ For deployment and production configuration, see:
 
 ---
 
-## 🚀 Mejoras Implementadas (v2.0+)
-
-### Autenticación Moderna
-- ✅ **Google Sign-In para Mobile** - Validación de idToken sin Passport web
-- ✅ **Apple Sign-In para Mobile** - Validación local de identityToken
-- ✅ **Sistema de Verificación por Código** - Separado de autenticación (reutilizable)
-- ✅ **Rate Limiting Avanzado** - Protección por endpoint crítico
-
-### Infraestructura
-- ✅ **Memory Optimization** - LimitedMemoryStore, Connection Pooling, Garbage Collection
-- ✅ **Circuit Breaker Pattern** - MongoDB con reintentos inteligentes
-- ✅ **Mailgun Integration** - Con fallback a modo demo
-
-### Próximos Pasos
-- [ ] Autenticación biométrica
-- [ ] Historial de transacciones
-- [ ] Cache de tasas de cambio
-- [ ] Webhooks en tiempo real
-- [ ] Dashboard administrativo
-
----
-
----
-
 ## Licencia
 MIT
 
