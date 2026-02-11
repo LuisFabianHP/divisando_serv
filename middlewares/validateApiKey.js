@@ -10,9 +10,7 @@ const validateApiKey = (req, res, next) => {
         error.taskName = 'validateApiKey';
 
         // Registrar en logs como advertencia (no error crítico)
-        apiLogger.warn({
-            taskName: error.taskName,
-            message: error.message,
+        apiLogger.warn('Clave API faltante - acceso denegado', {
             route: req.originalUrl,
         });
 
@@ -26,9 +24,7 @@ const validateApiKey = (req, res, next) => {
         error.taskName = 'validateApiKey';
 
         // Registrar en logs como advertencia (no error crítico)
-        apiLogger.warn({
-            taskName: error.taskName,
-            message: error.message,
+        apiLogger.warn('Clave API inválida - acceso denegado', {
             route: req.originalUrl,
         });
 
