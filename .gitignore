@@ -5,7 +5,7 @@ naturaltaks_module/
 * - copia.*
 *-copia.*
 .env
-.env*.
+.env.*
 *.env
 logs/
 .cert

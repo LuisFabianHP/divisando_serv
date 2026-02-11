@@ -72,33 +72,6 @@ REST API built with Node.js that powers the Divisando mobile app. Provides real-
 
 ---
 
-## 🚂 Testing Environment - Railway.com
-
-The API is deployed on **Railway.com** (Free Plan) for testing and validation.
-
-### Quick Links
-- **API URL**: https://divisando-serv-production.up.railway.app
-- **Health Check**: GET `/health` (public)
-- **Database Health**: GET `/health/database` (requires API key)
-- **Full Documentation**: [RAILWAY_ENV.md](./RAILWAY_ENV.md)
-
-### Current Resources
-- **Plan**: Free (0.5 GB RAM, 1 vCPU, $1/mo credit)
-- **Database**: MongoDB Atlas - Cluster0 (divisandoDB)
-- **Status**: Testing phase with optimization for memory constraints
-
-### Getting Started with Testing
-1. Check [RAILWAY_ENV.md](./RAILWAY_ENV.md) for complete configuration
-2. Review memory optimization settings (Section 7 in [MANUAL_TECNICO.md](./MANUAL_TECNICO.md))
-3. Use `/health` endpoint to verify API availability
-4. See "Troubleshooting" section in [RAILWAY_ENV.md](./RAILWAY_ENV.md) for common issues
-
-### Environment Variables
-All critical variables are managed in Railway Dashboard. Local development uses `.env` file.
-See [RAILWAY_ENV.md](./RAILWAY_ENV.md#-variables-de-entorno) for variable reference.
-
----
-
 # Documentación del Proyecto - Divisando API
 
 ## 📖 Introducción
@@ -216,40 +189,94 @@ Compatibilidad:
 
 ---
 
+## 🚀 Installation & Setup
+
+### Prerequisites
+- Node.js v16+ 
+- MongoDB Atlas account
+- API keys for external services (Google OAuth, Exchange Rate API, Mailgun)
+
+### Local Development
+```bash
+# Clone the repository
+git clone https://github.com/LuisFabianHP/divisando_serv.git
+cd divisando_serv
+
+# Install dependencies
+npm install
+
+# Create .env file with local variables
+cp .env.example .env  # (Edit with your local values)
+
+# Start development server
+npm run dev
+
+# API will be available at http://localhost:5000
+```
+
+### Environment Variables Required
+- `MONGO_URI` - MongoDB connection string
+- `JWT_SECRET`, `JWT_REFRESH_SECRET` - Token signing keys
+- `GOOGLE_CLIENT_ID` - Google OAuth configuration
+- `API_KEY` - API key for request validation
+- `EXCHANGE_RATE_API_KEY` - Exchange rate service key
+- `MAILGUN_DOMAIN`, `MAILGUN_API_KEY` - Email service (optional)
+
+---
+
+## 🧪 Testing
+
+### Running Tests
+```bash
+# Unit and integration tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
+```
+
+### Manual Testing
+Use tools like Postman or curl to test endpoints:
+```bash
+# Health check (public endpoint)
+curl http://localhost:5000/health
+
+# Health check with database status (requires API_KEY)
+curl -H "x-api-key: YOUR_API_KEY" http://localhost:5000/health/database
+```
+
+---
+
+## 📚 Documentation
+
+For deployment and production configuration, see:
+- **[RAILWAY_ENV.md](./RAILWAY_ENV.md)** - Railway.com deployment guide
+- **[MANUAL_TECNICO.md](./MANUAL_TECNICO.md)** - Technical documentation
+- **[MANUAL_USUARIO.md](./MANUAL_USUARIO.md)** - User guide
+
+---
+
 ## 🚀 Mejoras Implementadas (v2.0+)
 
 ### Autenticación Moderna
 - ✅ **Google Sign-In para Mobile** - Validación de idToken sin Passport web
 - ✅ **Apple Sign-In para Mobile** - Validación local de identityToken
-- ✅ **Sistema de Verificación por Código** - Separado de autenticación (reutilizable para registro y recuperación)
-- ✅ **Rate Limiting por Endpoint** - Protección específica para verificación, recuperación de contraseña y reenvío de códigos
+- ✅ **Sistema de Verificación por Código** - Separado de autenticación (reutilizable)
+- ✅ **Rate Limiting Avanzado** - Protección por endpoint crítico
 
-### Optimización de Memoria (Railway Free Plan)
-- ✅ **LimitedMemoryStore** - Rate limiter en memoria con límite configurable (5000 entries)
-- ✅ **Connection Pooling Optimizado** - MongoDB con 10/2 (max/min) conexiones
-- ✅ **Memory Monitor** - Cron cada 5 minutos para alertas de heap alto
-- ✅ **Garbage Collection Automático** - Cron cada 30 minutos (requiere --expose-gc)
+### Infraestructura
+- ✅ **Memory Optimization** - LimitedMemoryStore, Connection Pooling, Garbage Collection
+- ✅ **Circuit Breaker Pattern** - MongoDB con reintentos inteligentes
+- ✅ **Mailgun Integration** - Con fallback a modo demo
 
-### Seguridad Avanzada
-- ✅ **Email Verification** - Códigos de 6 dígitos con expiración (5 min)
-- ✅ **Circuit Breaker Pattern** - Para MongoDB con reintentos inteligentes
-- ✅ **Mailgun Integration** - Con fallback a modo demo si no está configurado
-
----
-
-## 📌 Proximos Pasos y Escalamiento
-
-### Cambios Necesarios al Escalar
-1. **Aumentar recursos en Railway** → Plan mejorado (2GB RAM, 2 vCPU)
-2. **Migrar Rate Limiter** → Redis en lugar de memoria
-3. **Optimización de Consultas** → Índices en MongoDB, caché de tasas de cambio
-4. **Monitoreo en Tiempo Real** → New Relic o similar para observabilidad
-
-### Roadmap Futuro
-- [ ] Autenticación biométrica en mobile
-- [ ] Historial de transacciones persistente
-- [ ] Alertas de cambios significativos en tasas
-- [ ] Webhooks para actualizaciones en tiempo real
+### Próximos Pasos
+- [ ] Autenticación biométrica
+- [ ] Historial de transacciones
+- [ ] Cache de tasas de cambio
+- [ ] Webhooks en tiempo real
 - [ ] Dashboard administrativo
 
 ---
