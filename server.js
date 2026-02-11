@@ -4,6 +4,8 @@ const app = require("./app");
 const { connectDB } = require("@config/database");
 const updateExchangeRates = require("@tasks/fetchExchangeRates");
 const scheduleUserCleanup = require("@tasks/cleanupUnverifiedUsers");
+const memoryMonitor = require("@tasks/memoryMonitor");
+const garbageCollector = require("@tasks/garbageCollector");
 const dotenv = require('dotenv');
 const PORT = process.env.PORT || 8080;
 const API_NAME = process.env.API_NAME;
@@ -26,6 +28,8 @@ connectDB()
     console.log(`✅ Servidor escuchando en el puerto \x1b[36m${PORT}\x1b[0m`);
     updateExchangeRates(); // Tarea de actualización de tasas de cambio
     scheduleUserCleanup(); // Tarea de limpieza de usuarios no verificados
+    memoryMonitor(); // Monitoreo de memoria cada 5min
+    garbageCollector(); // Garbage collection cada 30min
   });
 })
 .catch((error) => {

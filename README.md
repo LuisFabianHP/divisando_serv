@@ -1,16 +1,15 @@
-# � Divisando API | Secure Currency Exchange Backend
+# Divisando API | Secure Currency Exchange Backend
 
-Production-grade REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange rate data with enterprise-level security, multi-provider authentication, and comprehensive testing infrastructure.
+REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange data with security and background tasks for updates.
 
 ## ✨ Key Features
 
 • **Multi-provider authentication system:**
   - Email/password with bcrypt hashing
-  - Google OAuth 2.0 integration (mobile & web)
-  - Apple Sign-In support (iOS/macOS)
-  - Facebook OAuth integration
+  - Google Sign-In for mobile (idToken)
+  - Apple Sign-In for mobile
 • **Advanced security mechanisms:**
-  - JWT with automatic refresh token rotation (7-day expiry)
+  - JWT refresh tokens (7-day expiry)
   - HTTPS encryption with SSL/TLS
   - API key validation middleware
   - Rate limiting per IP and critical endpoints
@@ -34,11 +33,11 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 
 ## 🎯 Real-World Capabilities
 
-• Handles concurrent authentication requests with token rotation  
-• Validates and refreshes expired tokens automatically  
+• Handles concurrent authentication requests with refresh tokens  
+• Validates and refreshes tokens automatically  
 • Delivers exchange rates with historical comparison in <100ms  
 • Blocks brute-force attacks with intelligent rate limiting  
-• Supports multiple OAuth providers seamlessly  
+• Supports Google and Apple sign-in for mobile  
 • Sends verification codes via Mailgun with retry logic  
 • Professional error responses with detailed logging  
 
@@ -47,13 +46,11 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 **Runtime & Framework:**
 - Node.js with Express 4.21+
 - MongoDB with Mongoose ODM
-- MongoMemoryServer for isolated testing
 
 **Security:**
 - bcryptjs for password hashing
 - jsonwebtoken (JWT) with refresh tokens
-- google-auth-library for OAuth 2.0
-- passport (Google & Facebook strategies)
+- google-auth-library for idToken validation
 - express-rate-limit for DDoS protection
 
 **Communication:**
@@ -63,7 +60,6 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 
 **Development & Testing:**
 - Jest testing framework
-- MongoMemoryServer for test isolation
 - Winston for structured logging
 - dotenv for environment management
 
@@ -72,22 +68,49 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 - Environment-based configuration
 - Module aliasing for clean imports
 
-**Perfect example of production-ready API architecture with OAuth integration, token-based authentication, automated testing, and enterprise security patterns.**
+**Production-ready API architecture with token-based authentication, automated tasks, and security patterns.**
 
 ---
 
-# �📌 Documentación del Proyecto - Divisando API
+## 🚂 Testing Environment - Railway.com
+
+The API is deployed on **Railway.com** (Free Plan) for testing and validation.
+
+### Quick Links
+- **API URL**: https://divisando-serv-production.up.railway.app
+- **Health Check**: GET `/health` (public)
+- **Database Health**: GET `/health/database` (requires API key)
+- **Full Documentation**: [RAILWAY_ENV.md](./RAILWAY_ENV.md)
+
+### Current Resources
+- **Plan**: Free (0.5 GB RAM, 1 vCPU, $1/mo credit)
+- **Database**: MongoDB Atlas - Cluster0 (divisandoDB)
+- **Status**: Testing phase with optimization for memory constraints
+
+### Getting Started with Testing
+1. Check [RAILWAY_ENV.md](./RAILWAY_ENV.md) for complete configuration
+2. Review memory optimization settings (Section 7 in [MANUAL_TECNICO.md](./MANUAL_TECNICO.md))
+3. Use `/health` endpoint to verify API availability
+4. See "Troubleshooting" section in [RAILWAY_ENV.md](./RAILWAY_ENV.md) for common issues
+
+### Environment Variables
+All critical variables are managed in Railway Dashboard. Local development uses `.env` file.
+See [RAILWAY_ENV.md](./RAILWAY_ENV.md#-variables-de-entorno) for variable reference.
+
+---
+
+# Documentación del Proyecto - Divisando API
 
 ## 📖 Introducción
 Divisando API es un servicio backend diseñado para obtener y comparar tasas de cambio entre diferentes monedas. Provee endpoints seguros para recuperar tasas de cambio, realizar comparaciones y manejar autenticación mediante tokens JWT y Refresh Tokens.
 
 ## 🛠️ Configuración y Tecnologías
 - **Backend:** Node.js con Express.
-- **Base de datos:** MongoDB (Atlas o Local con MongoMemoryServer para pruebas).
+- **Base de datos:** MongoDB (Atlas).
 - **Autenticación:** JSON Web Tokens (JWT) con Refresh Tokens.
 - **Seguridad:** HTTPS, API Keys, Rate-Limiting, Validación de User-Agent y CORS.
 - **Logs y Monitoreo:** Winston para manejo de logs.
-- **Pruebas:** Jest y MongoMemoryServer.
+- **Pruebas:** Jest.
 
 ---
 
@@ -115,7 +138,7 @@ Toda la comunicación con la API está cifrada mediante HTTPS. Se configuraron c
 Registra un nuevo usuario.
 
 #### `POST /auth/login`
-Autentica un usuario y devuelve un JWT y un Refresh Token.
+Autentica un usuario y devuelve un Refresh Token.
 
 #### `POST /auth/refresh`
 Renueva el Access Token mediante un Refresh Token válido.
@@ -130,6 +153,9 @@ Devuelve la lista de monedas disponibles.
 #### `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 Devuelve el valor actual y el anterior de una moneda, con estado `up` o `dw`.
 
+#### `GET /exchange/:currency`
+Devuelve tasas para una moneda base.
+
 ### **Salud del servicio**
 #### `GET /health`
 Verifica que la API esté activa. **Público** (sin autenticación).
@@ -140,36 +166,13 @@ Verifica el estado de MongoDB (conectividad, latencia y circuit breaker).
 
 **Ejemplo:**
 ```bash
-curl -H "x-api-key: <TU_API_KEY>" https://tu-dominio.com/api/health/database
+curl -H "x-api-key: <TU_API_KEY>" https://tu-dominio.com/health/database
 ```
 
 **Nota:** Asegura que `API_KEY` este configurada en el entorno (local y produccion).
 
----
-
-## 🔍 Pruebas con Base de Datos en Memoria
-Para evitar el consumo innecesario de recursos y realizar pruebas controladas, se implementó **MongoMemoryServer**, permitiendo crear una base de datos temporal con datos de prueba.
-
-### **Generación de Datos de Prueba**
-Se desarrolló un script que:
-- Inserta datos históricos y actuales con valores aleatorios pero coherentes.
-- Permite simular escenarios donde los valores sean iguales para verificar la búsqueda de registros anteriores.
-- Funciona dentro de un entorno controlado sin afectar la base de datos real.
-
-Para ejecutar:
-```bash
-node tests/database/generateTestData.js
-```
-
-Para consultar registros:
-```bash
-node tests/database/showRecords.Test.js
-```
-
-Para eliminar datos de prueba:
-```bash
-node tests/database/clearTestData.js
-```
+Compatibilidad:
+- `/api/health` y `/api/health/database` se mantienen disponibles.
 
 ---
 
@@ -185,9 +188,9 @@ Para garantizar la estabilidad y seguridad del sistema:
 El sistema ha sido diseñado con seguridad y escalabilidad en mente. Próximas mejoras incluyen:
 - Optimización de consultas en MongoDB.
 - Implementación de caché para reducir latencias.
-- Integración con proveedores de autenticación externos como Google y Facebook.
+- Integración con proveedores de autenticación externos como Google y Apple.
 
-📌 **Última actualización:** Enero 2025
+**Última actualización:** Febrero 2026
 
 ---
 
@@ -198,3 +201,13 @@ El sistema ha sido diseñado con seguridad y escalabilidad en mente. Próximas m
 - `POST /auth/password/reset`: ahora devuelve `{ success: true, message }` al restablecer la contraseña correctamente.
 
 Estos cambios están pensados para alinear la API con la UI móvil que reutiliza la pantalla de verificación tanto para registro como para recuperación de contraseña.
+
+---
+
+## Licencia
+MIT
+
+---
+
+## Equipo
+🍍LU Devs Team
