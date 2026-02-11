@@ -72,6 +72,33 @@ REST API built with Node.js that powers the Divisando mobile app. Provides real-
 
 ---
 
+## 🚂 Testing Environment - Railway.com
+
+The API is deployed on **Railway.com** (Free Plan) for testing and validation.
+
+### Quick Links
+- **API URL**: https://divisando-serv-production.up.railway.app
+- **Health Check**: GET `/health` (public)
+- **Database Health**: GET `/health/database` (requires API key)
+- **Full Documentation**: [RAILWAY_ENV.md](./RAILWAY_ENV.md)
+
+### Current Resources
+- **Plan**: Free (0.5 GB RAM, 1 vCPU, $1/mo credit)
+- **Database**: MongoDB Atlas - Cluster0 (divisandoDB)
+- **Status**: Testing phase with optimization for memory constraints
+
+### Getting Started with Testing
+1. Check [RAILWAY_ENV.md](./RAILWAY_ENV.md) for complete configuration
+2. Review memory optimization settings (Section 7 in [MANUAL_TECNICO.md](./MANUAL_TECNICO.md))
+3. Use `/health` endpoint to verify API availability
+4. See "Troubleshooting" section in [RAILWAY_ENV.md](./RAILWAY_ENV.md) for common issues
+
+### Environment Variables
+All critical variables are managed in Railway Dashboard. Local development uses `.env` file.
+See [RAILWAY_ENV.md](./RAILWAY_ENV.md#-variables-de-entorno) for variable reference.
+
+---
+
 # Documentación del Proyecto - Divisando API
 
 ## 📖 Introducción
