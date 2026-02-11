@@ -19,8 +19,7 @@ const generateJWT = (id, role) => {
     });
 
   } catch (error) {
-    apiLogger.error({
-      message: 'Error al generar el JWT',
+    apiLogger.error('Error al generar el JWT', {
       error: error.message,
       stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
     });
