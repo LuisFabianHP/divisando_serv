@@ -135,16 +135,56 @@ Toda la comunicación con la API está cifrada mediante HTTPS. Se configuraron c
 
 ### **Autenticación**
 #### `POST /auth/register`
-Registra un nuevo usuario.
+Registra un nuevo usuario con email y contraseña.
+- Body: `{ email, password, phone }`
+- Response: `{ success: true, message }`
 
 #### `POST /auth/login`
-Autentica un usuario y devuelve un Refresh Token.
+Autentica un usuario con email y contraseña.
+- Body: `{ email, password }`
+- Response: `{ success: true, refreshToken, expiresAt }`
+
+#### `POST /auth/google`
+Autentica con Google Sign-In (mobile). Valida y verifica idToken.
+- Body: `{ idToken, email, name, picture }`
+- Response: `{ success: true, refreshToken, expiresAt }`
+
+#### `POST /auth/apple`
+Autentica con Apple Sign-In (mobile). Valida identityToken localmente.
+- Body: `{ identityToken, email, name }`
+- Response: `{ success: true, refreshToken, expiresAt }`
 
 #### `POST /auth/refresh`
-Renueva el Access Token mediante un Refresh Token válido.
+Renueva el Access Token usando un Refresh Token válido.
+- Body: `{ refreshToken }`
+- Response: `{ success: true, accessToken, expiresIn }`
 
 #### `POST /auth/logout`
-Elimina el Refresh Token del usuario cerrando sesión.
+Cierra la sesión del usuario invalidando el Refresh Token.
+- Body: `{ userId }`
+- Response: `{ success: true, message }`
+
+#### `POST /auth/code/verification`
+Verifica un código de 6 dígitos (para registro o recuperación de contraseña).
+- Body: `{ email (o userId), code, codeType: 'account_verification' | 'password_reset' }`
+- Response: 
+  - Registro: `{ success: true, refreshToken, expiresAt }`
+  - Recuperación: `{ success: true, userId, email }`
+
+#### `POST /auth/code/resend`
+Reenvía el código de verificación (con rate limiter: 10min de espera).
+- Body: `{ email }`
+- Response: `{ success: true, message }`
+
+#### `POST /auth/password/forgot`
+Inicia proceso de recuperación de contraseña. Envía código por email.
+- Body: `{ email }`
+- Response: `{ success: true, message, userId }`
+
+#### `POST /auth/password/reset`
+Restablece la contraseña con el código verificado.
+- Body: `{ email, code, newPassword }`
+- Response: `{ success: true, message }`
 
 ### **Monedas y Tasas de Cambio**
 #### `GET /exchange/currencies`
@@ -176,31 +216,43 @@ Compatibilidad:
 
 ---
 
-## 🚀 Pruebas de Carga y Validación Final
-Para garantizar la estabilidad y seguridad del sistema:
-1. **Simulación de alto tráfico** con Postman o Artillery.
-2. **Revisión de logs** en Winston para detectar anomalías.
-3. **Pruebas de endpoints críticos**, asegurando respuestas rápidas y coherentes.
+## 🚀 Mejoras Implementadas (v2.0+)
+
+### Autenticación Moderna
+- ✅ **Google Sign-In para Mobile** - Validación de idToken sin Passport web
+- ✅ **Apple Sign-In para Mobile** - Validación local de identityToken
+- ✅ **Sistema de Verificación por Código** - Separado de autenticación (reutilizable para registro y recuperación)
+- ✅ **Rate Limiting por Endpoint** - Protección específica para verificación, recuperación de contraseña y reenvío de códigos
+
+### Optimización de Memoria (Railway Free Plan)
+- ✅ **LimitedMemoryStore** - Rate limiter en memoria con límite configurable (5000 entries)
+- ✅ **Connection Pooling Optimizado** - MongoDB con 10/2 (max/min) conexiones
+- ✅ **Memory Monitor** - Cron cada 5 minutos para alertas de heap alto
+- ✅ **Garbage Collection Automático** - Cron cada 30 minutos (requiere --expose-gc)
+
+### Seguridad Avanzada
+- ✅ **Email Verification** - Códigos de 6 dígitos con expiración (5 min)
+- ✅ **Circuit Breaker Pattern** - Para MongoDB con reintentos inteligentes
+- ✅ **Mailgun Integration** - Con fallback a modo demo si no está configurado
 
 ---
 
-## 📌 Conclusión y Siguientes Pasos
-El sistema ha sido diseñado con seguridad y escalabilidad en mente. Próximas mejoras incluyen:
-- Optimización de consultas en MongoDB.
-- Implementación de caché para reducir latencias.
-- Integración con proveedores de autenticación externos como Google y Apple.
+## 📌 Proximos Pasos y Escalamiento
 
-**Última actualización:** Febrero 2026
+### Cambios Necesarios al Escalar
+1. **Aumentar recursos en Railway** → Plan mejorado (2GB RAM, 2 vCPU)
+2. **Migrar Rate Limiter** → Redis en lugar de memoria
+3. **Optimización de Consultas** → Índices en MongoDB, caché de tasas de cambio
+4. **Monitoreo en Tiempo Real** → New Relic o similar para observabilidad
+
+### Roadmap Futuro
+- [ ] Autenticación biométrica en mobile
+- [ ] Historial de transacciones persistente
+- [ ] Alertas de cambios significativos en tasas
+- [ ] Webhooks para actualizaciones en tiempo real
+- [ ] Dashboard administrativo
 
 ---
-
-## 🛠️ Cambios recientes (API de autenticación)
-
-- `POST /auth/password/forgot`: ahora devuelve `{ success: true, message, userId }` cuando se encuentra el usuario, para que el cliente pueda reutilizar `userId` si lo desea.
-- `POST /auth/code/verification`: acepta tanto `userId` como `email` en el body; para `account_verification` devuelve `{ success: true, refreshToken, expiresAt }`, y para `password_reset` devuelve `{ success: true, userId, email }` (sin emitir token).
-- `POST /auth/password/reset`: ahora devuelve `{ success: true, message }` al restablecer la contraseña correctamente.
-
-Estos cambios están pensados para alinear la API con la UI móvil que reutiliza la pantalla de verificación tanto para registro como para recuperación de contraseña.
 
 ---
 
