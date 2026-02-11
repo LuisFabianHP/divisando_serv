@@ -8,10 +8,6 @@ const errorHandler = require('@middlewares/errorHandler');
 const validateApiKey = require('@middlewares/validateApiKey');
 const validateUserAgent = require('@middlewares/validateUserAgent'); 
 const apiRateLimiter = require('@middlewares/rateLimiter');
-//Requerimientos passaport
-const passport = require('passport');
-require('@config/passportGoogle');
-require('@config/passportFacebook');
 const app = express();
 // Importando la rutas
 const exchangeRoutes = require('@routes/exchangeRoutes');
@@ -30,20 +26,15 @@ const corsOptions = {
 app.use(helmet()); // Seguridad básica
 app.use(cors(corsOptions));   // Manejo de CORS
 app.use(express.json()); // Parseo de JSON
-app.use(validateApiKey); // Validar clave API antes de las rutas
-app.use(validateUserAgent); // Validar User-Agent
 
-// Aplicar el middleware a todas las rutas de la API
-app.use('/exchange', apiRateLimiter); 
-
-// Rutas
-app.use('/exchange', exchangeRoutes);
-app.use('/auth', authRoutes);
+// Rutas publicas de health
+app.use('/', healthRoutes);
 app.use('/api', healthRoutes);
-app.use('/script', getSiteIP);
 
-//Esto carga las estrategias y hace que Passport esté disponible en la API.
-app.use(passport.initialize());
+// Rutas protegidas
+app.use('/exchange', validateApiKey, validateUserAgent, apiRateLimiter, exchangeRoutes);
+app.use('/auth', validateApiKey, validateUserAgent, authRoutes);
+app.use('/script', validateApiKey, validateUserAgent, getSiteIP);
 
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {

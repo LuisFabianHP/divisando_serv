@@ -1,7 +1,4 @@
 const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
-let mongoServer;
 let connectionStatus = 'disconnected'; // Estados: disconnected, connecting, connected, failed
 let lastConnectionAttempt = null;
 let consecutiveFailures = 0;
@@ -83,9 +80,7 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const mongoUri = process.env.NODE_ENV === 'test'
-        ? await startInMemoryMongo()
-        : process.env.MONGO_URI;
+      const mongoUri = process.env.MONGO_URI;
 
       if (!mongoUri) {
         throw new Error('MONGO_URI no está definida en las variables de entorno');
@@ -93,10 +88,17 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
 
       mongoose.set('strictQuery', false);
       
-      // Configurar timeout en la conexión
+      // Connection pool configurable para escalar: plan gratuito (10/2), plan pro (50/5)
+      const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE || '10', 10);
+      const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE || '2', 10);
+      const maxIdleTimeMS = parseInt(process.env.MONGO_MAX_IDLE_MS || '60000', 10);
+      
       const conn = await mongoose.connect(mongoUri, {
-        serverSelectionTimeoutMS: connectionTimeout, // Configurable para tests
-        socketTimeoutMS: connectionTimeout * 4.5, // 45 segundos por defecto
+        serverSelectionTimeoutMS: connectionTimeout,
+        socketTimeoutMS: connectionTimeout * 4.5,
+        maxPoolSize,
+        minPoolSize,
+        maxIdleTimeMS,
       });
 
       console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
@@ -138,26 +140,10 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
   }
 };
 
-const startInMemoryMongo = async () => {
-  mongoServer = await MongoMemoryServer.create();
-  return mongoServer.getUri();
-};
-
-// Cerrar la conexión y el servidor en memoria después de las pruebas
+// Cerrar la conexión con la base de datos
 const closeDB = async () => {
-  const collections = mongoose.connection.collections;
-
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany(); // Limpia los documentos sin eliminar las colecciones
-  }
-
   await mongoose.connection.close();
   connectionStatus = 'disconnected';
-
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
 };
 
 /**
@@ -189,13 +175,4 @@ const getConnectionStatus = async () => {
   return status;
 };
 
-/**
- * Resetea el estado de la conexión y circuit breaker (útil para tests)
- */
-const resetConnectionState = () => {
-  connectionStatus = 'disconnected';
-  consecutiveFailures = 0;
-  lastConnectionAttempt = null;
-};
-
-module.exports = { connectDB, closeDB, getConnectionStatus, resetConnectionState };
+module.exports = { connectDB, closeDB, getConnectionStatus };
