@@ -2,6 +2,8 @@
 
 **Documentación de configuración y monitoreo del API de Divisando en Railway**
 
+> 📝 **Nota**: Este archivo es específico para **Railway.com**. Para documentación general del proyecto, ver [README.md](./README.md).
+
 ---
 
 ## 📌 Información General
@@ -105,6 +107,19 @@ GOOGLE_CLIENT_ID="530315387189-gpqqu8ovq9o408ofmt8jm6p83mssvm6u.apps.googleuserc
 - ✅ **En uso**: Validación de `identityToken` desde Flutter app (iOS/macOS)
 - ✅ **Flujo**: Similar a Google, pero valida JWT localmente
 - ❌ No requiere variables de entorno
+
+#### Email Service (Mailgun - Opcional)
+```env
+MAILGUN_DOMAIN="sandbox[ID].mailgun.org"
+MAILGUN_API_KEY="tu-api-key-aqui"  # Generar en https://www.mailgun.com/
+```
+
+**Detalles de Email Service:**
+- ✅ **Función**: Enviar códigos de verificación y notificaciones
+- ✅ **Proveedor**: Mailgun (sandbox gratuito)
+- ⚠️ **Modo fallback**: Si no se configura, los códigos se loguean en consola (DEMO mode)
+- 📝 **Cómo obtener**: Registrarse en https://www.mailgun.com/
+- ⏰ **Nota**: Las API keys de Mailgun expiran, revisar y regenerar periódicamente
 
 ### Optimización de Memoria (Railway Free Plan)
 ```env

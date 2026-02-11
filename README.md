@@ -2,6 +2,8 @@
 
 REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange data with security and background tasks for updates.
 
+> 🚀 **Deployment Documentation**: For Railway.com configuration and setup, see [RAILWAY_ENV.md](./RAILWAY_ENV.md)
+
 ## ✨ Key Features
 
 • **Multi-provider authentication system:**
