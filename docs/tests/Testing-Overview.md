@@ -35,11 +35,13 @@ Todos los requests deben incluir estos headers:
 ```json
 {
   "Content-Type": "application/json",
-  "x-api-key": "@S3gUr@L0kP@sSw0rD!2o25",
+  "x-api-key": "YOUR_API_KEY_HERE",
   "User-Agent": "DivisandoApp/1.0",
   "Authorization": "Bearer {accessToken}" // Solo para endpoints protegidos
 }
 ```
+
+⚠️ **IMPORTANTE:** Nunca expongas la x-api-key en código público
 
 ### Explicación
 
@@ -56,9 +58,11 @@ Todos los requests deben incluir estos headers:
 
 ### Usuario de Prueba Principal
 ```
-Email:    test.feb12.api@gmail.com
-Password: D1v1$and0
-UserId:   698d75c7f10675a1a0b22a47
+Email:    test@example.com
+Password: TestPassword123!
+UserId:   (Generated during testing)
+
+⚠️ Usar solo para testing - NO compartir en público
 ```
 
 ### Tokens
@@ -90,20 +94,22 @@ Rates per currency: 166
 
 ### PowerShell + Invoke-RestMethod
 ```powershell
-# Ejemplo de request
+# Ejemplo de request (usar credenciales del .env)
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = $env:API_KEY  # Cargar de .env, NO hardcoded
   "User-Agent" = "DivisandoApp/1.0"
 }
 
-$body = '{"email":"test@example.com","password":"Pass123"}'
+$body = '{"email":"test@example.com","password":"TestPassword123"}'
 
 $response = Invoke-RestMethod `
   -Uri "https://divisando-serv-production.up.railway.app/auth/login" `
   -Method POST `
   -Headers $headers `
   -Body $body
+
+⚠️ NUNCA hardcodees credenciales. Usa variables de entorno.
 ```
 
 ### Postman (Futuro)
@@ -205,3 +211,4 @@ Para más información consulta:
 - [Repositorio Principal](https://github.com/LuisFabianHP/divisando_serv)
 - [Documentación de Modelos](API-Configuration)
 - [Issues y Bugs Conocidos](Known-Issues)
+

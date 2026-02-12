@@ -53,7 +53,7 @@
 **Headers Required:**
 ```
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken} (if needed)
 ```
@@ -70,3 +70,4 @@ Authorization: Bearer {accessToken} (if needed)
 ---
 
 **Last Updated:** 2026-02-12
+

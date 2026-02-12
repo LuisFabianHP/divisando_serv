@@ -57,7 +57,7 @@ Este directorio contiene la documentación completa del testing sistemático del
 **Headers Requeridos:**
 ```
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken} (si aplica)
 ```
@@ -76,3 +76,4 @@ Authorization: Bearer {accessToken} (si aplica)
 
 **Last Updated:** 2026-02-12  
 **Repository:** [divisando_serv](https://github.com/LuisFabianHP/divisando_serv)
+

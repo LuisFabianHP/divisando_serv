@@ -28,7 +28,7 @@ Validar que los límites de tasa están correctamente implementados y que el ser
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   "Authorization" = "Bearer $accessToken"
 }
@@ -176,7 +176,7 @@ for ($i = 1; $i -le 10; $i++) {
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   "Authorization" = "Bearer $accessToken"
 }
@@ -344,3 +344,4 @@ Una vez completada FASE 6:
 3. Exportar Postman Collection
 4. Definir SLA de monitoreo
 5. Planificar testing periódico
+

@@ -71,9 +71,11 @@ Bienvenido a la wiki oficial de testing y documentación del backend **Divisando
 ### Headers Requeridos
 ```
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken} (si aplica)
+
+⚠️ IMPORTANTE: Nunca expongas x-api-key en código público
 ```
 
 ### Respuestas Estándar
@@ -87,9 +89,11 @@ Authorization: Bearer {accessToken} (si aplica)
 
 ### Credenciales de Testing
 ```
-Email: test.feb12.api@gmail.com
-Password: D1v1$and0
-UserId: 698d75c7f10675a1a0b22a47
+Email: test@example.com
+Password: TestPassword123! (EN REALIDAD: Consultar .env local)
+UserId: (Generado durante testing)
+
+⚠️ NUNCA compartas credenciales reales en documentación pública
 ```
 
 ---
@@ -109,3 +113,4 @@ UserId: 698d75c7f10675a1a0b22a47
 Esta wiki está bajo control de versiones y se actualiza regularmente con resultados de testing. Para contribuir, consulta el repositorio principal: [divisando_serv](https://github.com/LuisFabianHP/divisando_serv)
 
 **Última actualización:** 2026-02-12
+

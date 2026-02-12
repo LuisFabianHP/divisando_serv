@@ -23,7 +23,7 @@ Validar endpoints de mantenimiento y monitoreo del sistema: refresh manual de ta
 ```json
 POST /exchange/refresh
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken}
 ```
@@ -63,7 +63,7 @@ Authorization: Bearer {accessToken}
 ```json
 GET /health/database
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 ```
 
@@ -117,7 +117,7 @@ User-Agent: DivisandoApp/1.0
 ```json
 GET /health/api
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 ```
 
@@ -204,7 +204,7 @@ El Circuit Breaker está correctamente configurado:
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
 }
 
@@ -284,3 +284,4 @@ El sistema de gestión está funcionando correctamente. La base de datos está e
 - Sistema listo para producción
 
 **Próxima fase:** [FASE 5 - Security](FASE-5-Security)
+

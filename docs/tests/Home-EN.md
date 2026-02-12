@@ -71,7 +71,7 @@ Welcome to the official wiki for testing and documentation of **Divisando Serv**
 ### Required Headers
 ```
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken} (if applicable)
 ```
@@ -87,9 +87,11 @@ Authorization: Bearer {accessToken} (if applicable)
 
 ### Testing Credentials
 ```
-Email: test.feb12.api@gmail.com
-Password: D1v1$and0
-UserId: 698d75c7f10675a1a0b22a47
+Email: test@example.com
+Password: TestPassword123! (Actually: Consult .env local)
+UserId: (Generated during testing)
+
+⚠️ DO NOT share real credentials in code or documentation
 ```
 
 ---
@@ -109,3 +111,4 @@ UserId: 698d75c7f10675a1a0b22a47
 This wiki is under version control and is regularly updated with testing results. To contribute, check the main repository: [divisando_serv](https://github.com/LuisFabianHP/divisando_serv)
 
 **Last updated:** 2026-02-12
+

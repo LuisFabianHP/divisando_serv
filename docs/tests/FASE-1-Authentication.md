@@ -23,7 +23,7 @@ Validar el flujo completo de autenticación del usuario desde registro hasta log
 ```json
 POST /auth/register
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
@@ -61,7 +61,7 @@ User-Agent: DivisandoApp/1.0
 ```json
 POST /auth/verify-code
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
@@ -100,12 +100,12 @@ User-Agent: DivisandoApp/1.0
 ```json
 POST /auth/login
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
-  "email": "test.feb12.api@gmail.com",
-  "password": "D1v1$and0"
+  "email": "test@example.com",
+  "password": "TestPassword123"
 }
 ```
 
@@ -140,7 +140,7 @@ User-Agent: DivisandoApp/1.0
 ```json
 POST /auth/refresh
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
@@ -177,7 +177,7 @@ User-Agent: DivisandoApp/1.0
 ```json
 POST /auth/logout
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
@@ -252,7 +252,7 @@ User-Agent: DivisandoApp/1.0
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
 }
 ```
@@ -305,3 +305,4 @@ Invoke-RestMethod -Uri "$baseUrl/auth/logout" -Method POST -Headers $headers -Bo
 El flujo de autenticación está completamente funcional y seguro. Todos los puntos de seguridad esperados están presentes: rate limiting, token expiration, salted passwords. Lista para producción.
 
 **Próxima fase:** [FASE 2 - Exchange Data](FASE-2-Exchange-Data)
+

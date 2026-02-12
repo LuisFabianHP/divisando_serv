@@ -23,7 +23,7 @@ Validar que el endpoint de comparación entre pares de divisas retorna tasas act
 ```json
 GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken}
 ```
@@ -207,7 +207,7 @@ else:
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   "Authorization" = "Bearer $accessToken"
 }
@@ -306,3 +306,4 @@ Write-Output "Porcentaje calculado: $([Math]::Round($calculatedPercent, 2))%"
 El endpoint de comparación está completamente funcional. Los cálculos son precisos, la lógica de status es correcta, y el comportamiento es predecible. Listo para ser utilizado en la aplicación móvil para mostrar tendencias de cambio de divisas.
 
 **Próxima fase:** [FASE 4 - Management](FASE-4-Management)
+

@@ -23,7 +23,7 @@ Validar que los endpoints de consulta de datos de divisas retornan información 
 ```json
 GET /exchange/currencies
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken}
 ```
@@ -78,7 +78,7 @@ Authorization: Bearer {accessToken}
 ```json
 GET /exchange/USD
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 Authorization: Bearer {accessToken}
 ```
@@ -248,7 +248,7 @@ CNY (Yuan Chino): 7.3125
 $baseUrl = "https://divisando-serv-production.up.railway.app"
 $headers = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   "Authorization" = "Bearer $accessToken"
 }
@@ -329,3 +329,4 @@ foreach ($curr in $currencies.currencies) {
 Los endpoints de consulta de datos están completamente funcionales. La estructura de datos es consistente, los valores son válidos, y el rate limiting está correctamente configurado. Los datos de divisas están listos para ser utilizados en comparativas y conversiones.
 
 **Próxima fase:** [FASE 3 - Comparisons](FASE-3-Comparisons)
+

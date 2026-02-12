@@ -18,7 +18,7 @@ Production: https://divisando-serv-production.up.railway.app
 
 ```http
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 ```
 
@@ -168,16 +168,18 @@ Headers:
 ## 🧪 Testing Credentials
 
 ```
-Email:    test.feb12.api@gmail.com
-Password: D1v1$and0
-UserId:   698d75c7f10675a1a0b22a47
+Email:    test@example.com
+Password: TestPassword123!
+UserId:   (Generated during testing)
+
+⚠️ NUNCA compartas credenciales reales
 ```
 
 ### Test Account Details
 
-- ✅ Email verificado
-- ✅ Contraseña configurada
-- ✅ Tokens disponibles
+- ✅ Email de example
+- ✅ Contraseña de ejemplo
+- ✅ Usar variables de entorno para credenciales reales
 - ⚠️ Usar solo para testing
 
 ---
@@ -314,7 +316,7 @@ Graceful shutdown: Enabled
 ```bash
 curl -X POST https://divisando-serv-production.up.railway.app/auth/register \
   -H "Content-Type: application/json" \
-  -H "x-api-key: @S3gUr@L0kP@sSw0rD!2o25" \
+  -H "x-api-key: YOUR_API_KEY_HERE" \
   -H "User-Agent: DivisandoApp/1.0" \
   -d '{
     "username": "testuser",
@@ -328,7 +330,7 @@ curl -X POST https://divisando-serv-production.up.railway.app/auth/register \
 ```bash
 curl -X GET "https://divisando-serv-production.up.railway.app/exchange/USD" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: @S3gUr@L0kP@sSw0rD!2o25" \
+  -H "x-api-key: YOUR_API_KEY_HERE" \
   -H "User-Agent: DivisandoApp/1.0" \
   -H "Authorization: Bearer {accessToken}"
 ```
@@ -338,7 +340,7 @@ curl -X GET "https://divisando-serv-production.up.railway.app/exchange/USD" \
 ```bash
 curl -X GET "https://divisando-serv-production.up.railway.app/exchange/compare?baseCurrency=USD&targetCurrency=MXN" \
   -H "Content-Type: application/json" \
-  -H "x-api-key: @S3gUr@L0kP@sSw0rD!2o25" \
+  -H "x-api-key: YOUR_API_KEY_HERE" \
   -H "User-Agent: DivisandoApp/1.0" \
   -H "Authorization: Bearer {accessToken}"
 ```
@@ -380,3 +382,4 @@ LOG_LEVEL=debug
 - **Wiki:** https://github.com/LuisFabianHP/divisando_serv/wiki
 
 **Last Updated:** 2026-02-12
+

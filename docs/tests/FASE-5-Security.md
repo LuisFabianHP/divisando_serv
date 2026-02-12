@@ -26,7 +26,7 @@ $baseUrl = "https://divisando-serv-production.up.railway.app"
 # Headers sin Authorization
 $headersNoJWT = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   # NO Authorization header
 }
@@ -84,7 +84,7 @@ GET /exchange/currencies
 # Headers sin User-Agent
 $headersNoUA = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   # NO User-Agent
   "Authorization" = "Bearer $accessToken"
 }
@@ -112,11 +112,11 @@ GET /exchange/currencies
 ```json
 POST /auth/login
 Content-Type: application/json
-x-api-key: @S3gUr@L0kP@sSw0rD!2o25
+x-api-key: YOUR_API_KEY_HERE
 User-Agent: DivisandoApp/1.0
 
 {
-  "email": "test.feb12.api@gmail.com",
+  "email": "test@example.com",
   "password": "PasswordIncorrect123!"
 }
 ```
@@ -149,7 +149,7 @@ $baseUrl = "https://divisando-serv-production.up.railway.app"
 # Headers con autenticación completa (referencia)
 $headersComplete = @{
   "Content-Type" = "application/json"
-  "x-api-key" = "@S3gUr@L0kP@sSw0rD!2o25"
+  "x-api-key" = "YOUR_API_KEY_HERE"
   "User-Agent" = "DivisandoApp/1.0"
   "Authorization" = "Bearer $accessToken"
 }
@@ -208,7 +208,7 @@ try {
 # Test 5.4: Credenciales inválidas
 Write-Output "=== Test 5.4: Login con contraseña incorrecta ==="
 try {
-  $loginBody = '{"email":"test.feb12.api@gmail.com","password":"WrongPassword123!"}'
+  $loginBody = '{"email":"test@example.com","password":"WrongPassword123!"}'
   
   $response = Invoke-RestMethod -Uri "$baseUrl/auth/login" -Method POST -Headers $headersComplete -Body $loginBody
   Write-Output "❌ FAILED: Login fue exitoso (esperado 401)"
@@ -291,3 +291,4 @@ Resultado: ___________
 Estructura y tests preparados. Próximo paso: ejecutar suite de tests y documentar resultados reales.
 
 **Próxima fase:** [FASE 6 - Resilience](FASE-6-Resilience)
+
