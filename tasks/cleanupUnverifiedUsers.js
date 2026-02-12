@@ -12,6 +12,8 @@ const EXPIRATION_MINUTES = 5;
 // Límite máximo de usuarios a eliminar por ejecución (para no abusar del free tier)
 const MAX_DELETE_BATCH = 100;
 
+let cleanupTask = null;
+
 /**
  * Limpia usuarios no verificados que tengan más de X minutos de antigüedad
  */
@@ -70,12 +72,27 @@ const cleanupUnverifiedUsers = async () => {
  */
 const scheduleCleanup = () => {
     taskLogger.info(`📅 Limpieza de usuarios no verificados programada: ${CRON_SCHEDULE} (diario a las 3 AM)`);
-    
-    cron.schedule(CRON_SCHEDULE, async () => {
+    if (cleanupTask) {
+        cleanupTask.stop();
+    }
+
+    cleanupTask = cron.schedule(CRON_SCHEDULE, async () => {
         await cleanupUnverifiedUsers();
     });
+    return cleanupTask;
+};
+
+const stopCleanup = () => {
+    if (cleanupTask) {
+        cleanupTask.stop();
+        cleanupTask.destroy();
+        cleanupTask = null;
+    }
 };
 
 // Exportar función para ejecución manual y programada
-module.exports = scheduleCleanup;
-module.exports.cleanupUnverifiedUsers = cleanupUnverifiedUsers;
+module.exports = {
+    scheduleCleanup,
+    stopCleanup,
+    cleanupUnverifiedUsers,
+};

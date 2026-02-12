@@ -1,7 +1,7 @@
 const ExchangeRate = require('@models/ExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const { apiLogger } = require('@utils/logger');
-const updateExchangeRates = require('@tasks/fetchExchangeRates');
+const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 
 /**
  * Función auxiliar para validar parámetros de consulta

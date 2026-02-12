@@ -3,6 +3,8 @@ const { taskLogger } = require('@utils/logger');
 
 const CRON_SCHEDULE = process.env.GC_CRON || '*/30 * * * *'; // Cada 30 minutos
 
+let garbageCollectorTask = null;
+
 /**
  * Fuerza garbage collection manual si está disponible
  * Requiere ejecutar Node con --expose-gc
@@ -21,7 +23,26 @@ function forceGarbageCollection() {
 }
 
 // Programar el cron job
-cron.schedule(CRON_SCHEDULE, forceGarbageCollection);
+function scheduleGarbageCollector() {
+  if (garbageCollectorTask) {
+    garbageCollectorTask.stop();
+  }
+
+  garbageCollectorTask = cron.schedule(CRON_SCHEDULE, forceGarbageCollection);
+  return garbageCollectorTask;
+}
+
+function stopGarbageCollector() {
+  if (garbageCollectorTask) {
+    garbageCollectorTask.stop();
+    garbageCollectorTask.destroy();
+    garbageCollectorTask = null;
+  }
+}
 
 // Exportar para ejecutar manualmente si es necesario
-module.exports = forceGarbageCollection;
+module.exports = {
+  forceGarbageCollection,
+  scheduleGarbageCollector,
+  stopGarbageCollector,
+};

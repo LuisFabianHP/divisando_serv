@@ -44,6 +44,7 @@ const getSelectedCurrencies = async () => {
 const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
 
 let exchangeRatesRunning = false;
+let exchangeRatesTask = null;
 
 
 /**
@@ -192,7 +193,28 @@ async function updateExchangeRates() {
   }
 }
 
-// Programar el cron job (cada hora)
-cron.schedule(CRON_SCHEDULE, updateExchangeRates);
+const runExchangeRates = taskErrorHandler(updateExchangeRates);
 
-module.exports = taskErrorHandler(updateExchangeRates);
+// Programar el cron job (cada hora)
+const scheduleExchangeRates = () => {
+  if (exchangeRatesTask) {
+    exchangeRatesTask.stop();
+  }
+
+  exchangeRatesTask = cron.schedule(CRON_SCHEDULE, runExchangeRates);
+  return exchangeRatesTask;
+};
+
+const stopExchangeRates = () => {
+  if (exchangeRatesTask) {
+    exchangeRatesTask.stop();
+    exchangeRatesTask.destroy();
+    exchangeRatesTask = null;
+  }
+};
+
+module.exports = {
+  updateExchangeRates: runExchangeRates,
+  scheduleExchangeRates,
+  stopExchangeRates,
+};
