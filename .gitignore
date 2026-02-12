@@ -14,3 +14,4 @@ openssl.cnf
 server.cert
 server.key
 .vscode
+MANUAL_RAILWAY.md

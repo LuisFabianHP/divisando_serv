@@ -49,6 +49,7 @@ Exchange:
 - `GET /exchange/currencies`
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
+- `POST /exchange/refresh` (mantenimiento)
 
 Health:
 - `GET /health`
@@ -196,6 +197,20 @@ curl -X GET "http://localhost:5000/exchange/compare?baseCurrency=USD&targetCurre
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
   -H "Authorization: Bearer <JWT>"
+```
+```json
+{ "baseCurrency": "USD", "targetCurrency": "MXN", "currentRate": 17.12 }
+```
+
+Ejecución manual de tasas (mantenimiento):
+```bash
+curl -X POST "http://localhost:5000/exchange/refresh" \
+  -H "x-api-key: <API_KEY>" \
+  -H "User-Agent: DivisandoApp/1.0" \
+  -H "Authorization: Bearer <JWT>"
+```
+```json
+{ "success": true, "message": "Actualización de tasas iniciada. Verifica logs para el progreso." }
 ```
 ```json
 {
