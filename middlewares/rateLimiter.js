@@ -16,10 +16,16 @@ class LimitedMemoryStore {
       this.hits.delete(firstKey);
     }
 
-    const record = this.hits.get(key) || { totalHits: 0, resetTime: Date.now() + 60000 };
+    const record = this.hits.get(key) || { 
+      totalHits: 0, 
+      resetTime: new Date(Date.now() + 60000) // Date object para compatibilidad con express-rate-limit
+    };
     record.totalHits++;
     this.hits.set(key, record);
-    return record;
+    return {
+      totalHits: record.totalHits,
+      resetTime: record.resetTime
+    };
   }
 
   decrement(key) {
@@ -37,7 +43,10 @@ class LimitedMemoryStore {
   cleanup() {
     const now = Date.now();
     for (const [key, record] of this.hits.entries()) {
-      if (record.resetTime < now) {
+      const resetTimestamp = record.resetTime instanceof Date 
+        ? record.resetTime.getTime() 
+        : record.resetTime;
+      if (resetTimestamp < now) {
         this.hits.delete(key);
       }
     }
@@ -63,12 +72,7 @@ const apiRateLimiter = rateLimit({
   store,
   keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
   handler: (req, res, next) => {
-    // resetTime es un timestamp numérico o un objeto Date
-    const resetTime = typeof req.rateLimit.resetTime === 'number' 
-      ? req.rateLimit.resetTime 
-      : (req.rateLimit.resetTime?.getTime?.() || Date.now() + 60000);
-    
-    const retryAfter = Math.ceil((resetTime - Date.now()) / 1000) || 60;
+    const retryAfter = Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000) || 60;
     res.set('Retry-After', retryAfter);
 
     const error = new Error('Demasiadas solicitudes desde esta IP.');
