@@ -375,6 +375,20 @@ LOG_LEVEL=debug
 
 ---
 
+## 🌐 Servicios de Terceros
+
+### ExchangeRate-API
+
+Divisando Serv utiliza [ExchangeRate-API](https://www.exchangerate-api.com/) para obtener tasas de cambio actualizadas.
+
+- **Dashboard:** https://app.exchangerate-api.com/
+- **Documentación:** https://www.exchangerate-api.com/docs/overview
+- **Plan:** Standard/Free (6 requests/min)
+
+> 💡 **Nota:** Las tasas se actualizan automáticamente cada hora mediante tarea programada (cron job).
+
+---
+
 ## 📞 Support & Documentation
 
 - **Repository:** https://github.com/LuisFabianHP/divisando_serv

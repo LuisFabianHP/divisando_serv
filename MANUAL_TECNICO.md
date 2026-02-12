@@ -256,6 +256,9 @@ POST /exchange/refresh
 
 **API utilizada**: [exchangerate-api.com](https://www.exchangerate-api.com/docs/overview)
 
+- **Dashboard:** https://app.exchangerate-api.com/
+- **Docs:** https://www.exchangerate-api.com/docs/overview
+
 Endpoint consumido:
 ```
 GET /v6/<API_KEY>/latest/<BASE>
