@@ -26,7 +26,6 @@ connectDB()
   // Iniciar servidor HTTP (Railway maneja HTTPS automáticamente)
   http.createServer(app).listen(PORT, () => {
     console.log(`✅ Servidor escuchando en el puerto \x1b[36m${PORT}\x1b[0m`);
-    updateExchangeRates(); // Tarea de actualización de tasas de cambio
     scheduleUserCleanup(); // Tarea de limpieza de usuarios no verificados
     memoryMonitor(); // Monitoreo de memoria cada 5min
     garbageCollector(); // Garbage collection cada 30min
