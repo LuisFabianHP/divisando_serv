@@ -306,3 +306,4 @@ Write-Output "Porcentaje calculado: $([Math]::Round($calculatedPercent, 2))%"
 El endpoint de comparación está completamente funcional. Los cálculos son precisos, la lógica de status es correcta, y el comportamiento es predecible. Listo para ser utilizado en la aplicación móvil para mostrar tendencias de cambio de divisas.
 
 **Próxima fase:** [FASE 4 - Management](FASE-4-Management)
+

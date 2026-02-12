@@ -168,16 +168,18 @@ Headers:
 ## 🧪 Testing Credentials
 
 ```
-Email:    test.feb12.api@gmail.com
-Password: D1v1$and0
-UserId:   698d75c7f10675a1a0b22a47
+Email:    test@example.com
+Password: TestPassword123!
+UserId:   (Generated during testing)
+
+⚠️ NUNCA compartas credenciales reales
 ```
 
 ### Test Account Details
 
-- ✅ Email verificado
-- ✅ Contraseña configurada
-- ✅ Tokens disponibles
+- ✅ Email de example
+- ✅ Contraseña de ejemplo
+- ✅ Usar variables de entorno para credenciales reales
 - ⚠️ Usar solo para testing
 
 ---
@@ -380,3 +382,4 @@ LOG_LEVEL=debug
 - **Wiki:** https://github.com/LuisFabianHP/divisando_serv/wiki
 
 **Last Updated:** 2026-02-12
+

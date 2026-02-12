@@ -344,3 +344,4 @@ Una vez completada FASE 6:
 3. Exportar Postman Collection
 4. Definir SLA de monitoreo
 5. Planificar testing periódico
+
