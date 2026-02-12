@@ -20,7 +20,10 @@ const verificationCodeLimiter = rateLimit({
     return `verify:${ip}:${identifier}`;
   },
   handler: (req, res) => {
-    const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000) || 60;
+    const resetTime = typeof req.rateLimit.resetTime === 'number' 
+      ? req.rateLimit.resetTime 
+      : (req.rateLimit.resetTime?.getTime?.() || Date.now() + 60000);
+    const retryAfter = Math.ceil((resetTime - Date.now()) / 1000) || 60;
     
     apiLogger.warn('Límite de intentos de verificación excedido', {
       ip: req.headers['x-forwarded-for'] || req.ip,
@@ -55,7 +58,10 @@ const forgotPasswordLimiter = rateLimit({
     return `forgot:${ip}:${email}`;
   },
   handler: (req, res) => {
-    const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000) || 300;
+    const resetTime = typeof req.rateLimit.resetTime === 'number' 
+      ? req.rateLimit.resetTime 
+      : (req.rateLimit.resetTime?.getTime?.() || Date.now() + 300000);
+    const retryAfter = Math.ceil((resetTime - Date.now()) / 1000) || 300;
     
     apiLogger.warn('Límite de solicitudes de recuperación excedido', {
       ip: req.headers['x-forwarded-for'] || req.ip,
@@ -90,7 +96,10 @@ const resendCodeLimiter = rateLimit({
     return `resend:${ip}:${identifier}`;
   },
   handler: (req, res) => {
-    const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000) || 600;
+    const resetTime = typeof req.rateLimit.resetTime === 'number' 
+      ? req.rateLimit.resetTime 
+      : (req.rateLimit.resetTime?.getTime?.() || Date.now() + 600000);
+    const retryAfter = Math.ceil((resetTime - Date.now()) / 1000) || 600;
     
     apiLogger.warn('Límite de reenvíos de código excedido', {
       ip: req.headers['x-forwarded-for'] || req.ip,
