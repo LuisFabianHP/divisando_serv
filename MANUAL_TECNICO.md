@@ -233,6 +233,27 @@ Archivo: `tasks/fetchExchangeRates.js`.
 - Evita re-consulta dentro de `EXCHANGE_RATE_RECENT_HOURS`.
 - Monedas desde `EXCHANGE_RATE_CURRENCIES` o `AvailableCurrencies` en MongoDB.
 
+### Ejecución manual (solo mantenimiento)
+Endpoint protegido para disparar actualización bajo demanda:
+
+```http
+POST /exchange/refresh
+```
+
+**Requiere**: `x-api-key` + `Authorization: Bearer <JWT>` + `User-Agent` válido
+
+**Respuesta esperada (202):**
+```json
+{
+  "success": true,
+  "message": "Actualización de tasas iniciada. Verifica logs para el progreso."
+}
+```
+
+**Notas:**
+- No se ejecuta al inicio; solo cron o ejecución manual
+- Si ya hay una ejecución en curso, se ignora el trigger
+
 **API utilizada**: [exchangerate-api.com](https://www.exchangerate-api.com/docs/overview)
 
 Endpoint consumido:
