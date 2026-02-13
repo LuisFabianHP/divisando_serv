@@ -6,6 +6,8 @@ const { scheduleExchangeRates, stopExchangeRates } = require("@tasks/fetchExchan
 const { scheduleCleanup, stopCleanup } = require("@tasks/cleanupUnverifiedUsers");
 const { scheduleMemoryMonitor, stopMemoryMonitor } = require("@tasks/memoryMonitor");
 const { scheduleGarbageCollector, stopGarbageCollector } = require("@tasks/garbageCollector");
+const apiRateLimiter = require("@middlewares/rateLimiter");
+const { closeLoggers } = require("@utils/logger");
 const dotenv = require('dotenv');
 const PORT = process.env.PORT || 8080;
 const API_NAME = process.env.API_NAME;
@@ -40,17 +42,27 @@ connectDB()
 
 const gracefulShutdown = (signal) => {
   console.log(`🛑 ${signal}: Cerrando servidor y tareas...`);
+  
+  // Detener cron jobs
   stopExchangeRates();
   stopCleanup();
   stopMemoryMonitor();
   stopGarbageCollector();
+  
+  // Limpiar rate limiter store (detiene setInterval y limpia Map)
+  if (apiRateLimiter.store && apiRateLimiter.store.shutdown) {
+    apiRateLimiter.store.shutdown();
+  }
 
   if (server) {
-    server.close(() => {
-      closeDB().finally(() => process.exit(0));
+    server.close(async () => {
+      // Cerrar loggers (limpia file handles de Winston)
+      await closeLoggers();
+      await closeDB();
+      process.exit(0);
     });
   } else {
-    closeDB().finally(() => process.exit(0));
+    closeLoggers().then(() => closeDB()).finally(() => process.exit(0));
   }
 };
 
