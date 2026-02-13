@@ -84,4 +84,6 @@ const apiRateLimiter = rateLimit({
   }
 });
 
+// Exportar store para limpieza en gracefulShutdown
 module.exports = apiRateLimiter;
+module.exports.store = store;
