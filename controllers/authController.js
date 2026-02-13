@@ -56,10 +56,29 @@ const verificationCode  = async (req, res, next) => {
         // Validar si el código existe
         if (!verificationCode) {
             // Incrementar intentos fallidos en todos los códigos activos del usuario
-            await VerificationCode.updateMany(
-                { userId: user._id, expiresAt: { $gt: new Date() } },
-                { $inc: { attempts: 1 } }
-            );
+            const now = new Date();
+            const latestCode = await VerificationCode.findOne({
+                userId: user._id,
+                expiresAt: { $gt: now }
+            }).sort({ expiresAt: -1 });
+
+            if (latestCode) {
+                const updatedCode = await VerificationCode.findOneAndUpdate(
+                    { _id: latestCode._id },
+                    { $inc: { attempts: 1 } },
+                    { new: true }
+                );
+
+                if (updatedCode && updatedCode.attempts >= updatedCode.maxAttempts) {
+                    updatedCode.isBlocked = true;
+                    await updatedCode.save();
+
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Código bloqueado por exceso de intentos. Solicita un nuevo código.'
+                    });
+                }
+            }
             
             return res.status(400).json({ success: false, error: 'Código inválido.' });
         }
