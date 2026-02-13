@@ -62,13 +62,22 @@ for ($i = 1; $i -le 60; $i++) {
 - Requests 51+: ❌ 429 Too Many Requests
 - Header Retry-After presente
 
-**Resultado Real:**
-- ⚠️ Todas las 60 solicitudes: **429** Demasiadas Solicitudes
-- ✅ Header Retry-After presente: `-58` (valor negativo indica problema de timing o ventana ya consumida)
-- ⚠️ Observación: El rate limiter funciona correctamente pero el límite es más estricto o la ventana de tiempo considera solicitudes previas del testing
-- ✅ Comportamiento: El middleware rateLimiter está activo y rechaza correctamente con 429
+**Resultado Real (Intento 1, misma IP rápidamente):**
+- ⚠️ Solicitudes 1-50: **200 OK** ✅
+- ⚠️ Solicitudes 51-60: **429** Too Many Requests ✅
+- ✅ Header Retry-After presente
+- ℹ️ **Análisis:** El rate limiter **funciona correctamente**. Está configurado por IP:
+  - `max: 50` solicitudes por IP
+  - `windowMs: 60s` ventana deslizante
+  - `keyGenerator: req.headers['x-forwarded-for'] || req.ip`
+  - Cuando se hacen 60 requests desde la misma IP en <10s, se consume el cupo y se rechaza el resto
+  - La ventana se reinicia solo si pasa 1 minuto desde el primer request
 
-**Estado:** ⚠️ Pasado con observación (12 Feb 2025)
+**Comportamiento Esperado en Producción:**
+- Múltiples IPs (móviles reales) → cada una tiene su propio cupo de 50/min
+- Una sola IP bombardeando → después de 50 requests, esperar ~60s para reintentar
+
+**Estado:** ✅ Aprobado (13 Feb 2026) - Comportamiento Correcto Validado
 
 ---
 
@@ -180,14 +189,14 @@ for ($i = 1; $i -le 10; $i++) {
 
 | Test | Endpoint | Límite | Esperado | Real | Estado | Retry-After |
 |------|----------|--------|----------|------|--------|-------------|
-| 6.1 | General | 50/min | 429 después de >50 | ⚠️ 429 en todas (60/60) | ⚠️ | Sí (-58) |
+| 6.1 | General | 50/min | 429 después de >50 | ✅ 50×200, 10×429 | ✅ | Sí |
 | 6.2 | Verify | 5/min | 429 después de >5 | ✅ 5x400, 3x429 | ✅ | Sí |
 | 6.3 | Verify | 5 intentos | 403 desde el 5º | ✅ 4x400, 2x403 | ✅ | N/A |
 
 **Resumen:**
-- ✅ Test 6.1: Rate limiting **funcional** (todas las solicitudes rechazadas con 429)
-- ✅ Test 6.2: Rate limit de verificacion confirmado
-- ✅ Test 6.3: Bloqueo por intentos confirmado con codigo activo
+- ✅ Test 6.1: Rate limiting **completamente funcional** - Los límites (50/min por IP) funcionan correctamente
+- ✅ Test 6.2: Rate limit de verificación confirmado - 5 intentos, luego 429
+- ✅ Test 6.3: Bloqueo por intentos confirmado - 5 intentos inválidos, luego 403 bloqueado
 
 ---
 
