@@ -76,4 +76,12 @@ const taskLogger = createLogger({
   ],
 });
 
-module.exports = { apiLogger, taskLogger };
+// Función para cerrar loggers de manera elegante (limpia file handles)
+const closeLoggers = () => {
+  return Promise.all([
+    new Promise((resolve) => apiLogger.close(() => resolve())),
+    new Promise((resolve) => taskLogger.close(() => resolve())),
+  ]);
+};
+
+module.exports = { apiLogger, taskLogger, closeLoggers };
