@@ -13,9 +13,23 @@ try {
   console.error('❌ Error al crear directorio de logs:', err.message);
 }
 
+// Utilidad para formatear fecha a 'YYYY-MM-DD HH:mm:ss' con JS puro
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const pad = n => n.toString().padStart(2, '0');
+  const yyyy = date.getFullYear();
+  const MM = pad(date.getMonth() + 1);
+  const dd = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const mm = pad(date.getMinutes());
+  const ss = pad(date.getSeconds());
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
+
 // Formato personalizado para los logs
 const logFormat = printf(({ level, message, timestamp, ...meta }) => {
-  return `${timestamp} [${level.toUpperCase()}]: ${message} ${
+  const friendlyTime = formatDate(timestamp);
+  return `${friendlyTime} [${level.toUpperCase()}]: ${message} ${
     Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
   }`;
 });
