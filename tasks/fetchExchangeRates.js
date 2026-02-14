@@ -208,7 +208,9 @@ const scheduleExchangeRates = () => {
 const stopExchangeRates = () => {
   if (exchangeRatesTask) {
     exchangeRatesTask.stop();
-    exchangeRatesTask.destroy();
+    if (typeof exchangeRatesTask.destroy === 'function') {
+      exchangeRatesTask.destroy();
+    }
     exchangeRatesTask = null;
   }
 };

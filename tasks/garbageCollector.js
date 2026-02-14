@@ -35,7 +35,9 @@ function scheduleGarbageCollector() {
 function stopGarbageCollector() {
   if (garbageCollectorTask) {
     garbageCollectorTask.stop();
-    garbageCollectorTask.destroy();
+    if (typeof garbageCollectorTask.destroy === 'function') {
+      garbageCollectorTask.destroy();
+    }
     garbageCollectorTask = null;
   }
 }
