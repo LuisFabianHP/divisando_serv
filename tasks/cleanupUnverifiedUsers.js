@@ -85,7 +85,9 @@ const scheduleCleanup = () => {
 const stopCleanup = () => {
     if (cleanupTask) {
         cleanupTask.stop();
-        cleanupTask.destroy();
+        if (typeof cleanupTask.destroy === 'function') {
+            cleanupTask.destroy();
+        }
         cleanupTask = null;
     }
 };
