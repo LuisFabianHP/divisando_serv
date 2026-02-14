@@ -43,7 +43,9 @@ function scheduleMemoryMonitor() {
 function stopMemoryMonitor() {
   if (memoryMonitorTask) {
     memoryMonitorTask.stop();
-    memoryMonitorTask.destroy();
+    if (typeof memoryMonitorTask.destroy === 'function') {
+      memoryMonitorTask.destroy();
+    }
     memoryMonitorTask = null;
   }
 }
