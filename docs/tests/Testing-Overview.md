@@ -101,7 +101,15 @@ $headers = @{
   "User-Agent" = "DivisandoApp/1.0"
 }
 
-$body = '{"email":"test@example.com","password":"TestPassword123"}'
+
+# ⚠️ IMPORTANTE: Si la contraseña contiene el símbolo $ (dólar), debes usar comillas simples o escapar el carácter para evitar errores en PowerShell.
+# Ejemplo genérico:
+#
+# $body = @{ email = "usuario@dominio.com"; password = 'MiP4ss$eguro' } | ConvertTo-Json
+#
+# O bien:
+#
+# $body = @{ email = "usuario@dominio.com"; password = "MiP4ss`$eguro" } | ConvertTo-Json
 
 $response = Invoke-RestMethod `
   -Uri "https://divisando-serv-production.up.railway.app/auth/login" `
