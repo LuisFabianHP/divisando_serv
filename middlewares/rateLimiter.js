@@ -63,7 +63,7 @@ const store = new LimitedMemoryStore(MAX_STORE_ENTRIES);
 
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // Ventana de 1 minuto
-  max: 50, // Máximo de 50 solicitudes por IP
+  max: parseInt(process.env.RATE_LIMIT_MAX || '30', 10), // Máximo de solicitudes por IP, por defecto 30
   message: {
     error: 'Demasiadas solicitudes desde esta IP, inténtalo de nuevo después de 1 minuto.',
   },
