@@ -198,6 +198,15 @@ Archivo: `config/database.js`
 - `maxIdleTimeMS`: 60000ms antes de cerrar conexiones inactivas.
 - Variables: `MONGO_MAX_POOL_SIZE`, `MONGO_MIN_POOL_SIZE`, `MONGO_MAX_IDLE_MS`
 
+### Retención automática de tasas (TTL)
+Archivo: `models/ExchangeRate.js`
+ - La colección `exchangeRates` implementa un índice TTL para eliminar automáticamente registros antiguos.
+ - El tiempo de retención se configura mediante la variable `MONGO_TTL_SECONDS` (por defecto: 604800 segundos = 7 días).
+ - Permite ajustar la caducidad de los datos según el entorno (desarrollo, producción, etc).
+ - Cambia el valor en `.env` para modificar la retención.
+ - Ejemplo: `MONGO_TTL_SECONDS=604800` (una semana).
+ - El TTL se aplica solo a los documentos de tasas de cambio, no afecta otras colecciones.
+
 ### Memory Monitor
 Archivo: `tasks/memoryMonitor.js`
 - Monitoreo de uso de memoria a intervalos configurables.
