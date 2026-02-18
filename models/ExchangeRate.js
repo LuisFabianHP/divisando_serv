@@ -7,6 +7,7 @@ const rateSchema = new mongoose.Schema({
   value: { type: Number, required: true },   // Tasa de cambio
 });
 
+
 // Esquema principal para las tasas de cambio
 const exchangeRateSchema = new mongoose.Schema(
   {
@@ -26,5 +27,10 @@ const exchangeRateSchema = new mongoose.Schema(
     timestamps: true // Agrega campos createdAt y updatedAt automáticamente
   }
 );
+
+// Índice TTL y compuesto para retención e histórico
+const ttlSeconds = parseInt(process.env.MONGO_TTL_SECONDS || '604800', 10); // 7 días por defecto
+exchangeRateSchema.index({ createdAt: 1 }, { expireAfterSeconds: ttlSeconds });
+exchangeRateSchema.index({ base_currency: 1, createdAt: 1 });
 
 module.exports = mongoose.model('ExchangeRate', exchangeRateSchema);

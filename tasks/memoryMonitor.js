@@ -3,6 +3,8 @@ const { taskLogger } = require('@utils/logger');
 
 const CRON_SCHEDULE = process.env.MEMORY_MONITOR_CRON || '*/5 * * * *'; // Cada 5 minutos
 
+let memoryMonitorTask = null;
+
 /**
  * Monitorea el uso de memoria heap y genera alertas si es necesario
  */
@@ -29,7 +31,28 @@ function monitorMemory() {
 }
 
 // Programar el cron job
-cron.schedule(CRON_SCHEDULE, monitorMemory);
+function scheduleMemoryMonitor() {
+  if (memoryMonitorTask) {
+    memoryMonitorTask.stop();
+  }
+
+  memoryMonitorTask = cron.schedule(CRON_SCHEDULE, monitorMemory);
+  return memoryMonitorTask;
+}
+
+function stopMemoryMonitor() {
+  if (memoryMonitorTask) {
+    memoryMonitorTask.stop();
+    if (typeof memoryMonitorTask.destroy === 'function') {
+      memoryMonitorTask.destroy();
+    }
+    memoryMonitorTask = null;
+  }
+}
 
 // Exportar para ejecutar manualmente si es necesario
-module.exports = monitorMemory;
+module.exports = {
+  monitorMemory,
+  scheduleMemoryMonitor,
+  stopMemoryMonitor,
+};

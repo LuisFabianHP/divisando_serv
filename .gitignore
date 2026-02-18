@@ -1,11 +1,10 @@
 node_modules/
-naturaltaks_module/
 * - copia - *
 *-copia-*
 * - copia.*
 *-copia.*
 .env
-.env*.
+.env.*
 *.env
 logs/
 .cert
@@ -14,3 +13,4 @@ openssl.cnf
 server.cert
 server.key
 .vscode
+MANUAL_RAILWAY.md
