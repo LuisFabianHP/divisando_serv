@@ -44,19 +44,16 @@ Autenticacion:
 - `POST /auth/password/reset`
 - `POST /auth/google` (mobile)
 - `POST /auth/apple` (mobile)
-- `GET /auth/google` (web)
-- `GET /auth/google/callback` (web)
-- `GET /auth/facebook` (web)
-- `GET /auth/facebook/callback` (web)
 
 Exchange:
 - `GET /exchange/currencies`
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
+- `POST /exchange/refresh` (mantenimiento)
 
 Health:
-- `GET /api/health`
-- `GET /api/health/database`
+- `GET /health`
+- `GET /health/database`
 
 ---
 
@@ -194,16 +191,26 @@ curl -X POST "http://localhost:5000/auth/apple" \
 { "refreshToken": "<token>", "expiresAt": "2026-02-10T02:10:00.000Z" }
 ```
 
-OAuth web (Google/Facebook):
-- Abre `GET /auth/google` o `GET /auth/facebook` en navegador.
-- El callback devuelve `{ refreshToken }` si es exitoso.
-
 Comparacion:
 ```bash
 curl -X GET "http://localhost:5000/exchange/compare?baseCurrency=USD&targetCurrency=MXN" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
   -H "Authorization: Bearer <JWT>"
+```
+```json
+{ "baseCurrency": "USD", "targetCurrency": "MXN", "currentRate": 17.12 }
+```
+
+Ejecución manual de tasas (mantenimiento):
+```bash
+curl -X POST "http://localhost:5000/exchange/refresh" \
+  -H "x-api-key: <API_KEY>" \
+  -H "User-Agent: DivisandoApp/1.0" \
+  -H "Authorization: Bearer <JWT>"
+```
+```json
+{ "success": true, "message": "Actualización de tasas iniciada. Verifica logs para el progreso." }
 ```
 ```json
 {
@@ -250,9 +257,7 @@ curl -X GET "http://localhost:5000/exchange/USD" \
 
 Health:
 ```bash
-curl -X GET "http://localhost:5000/api/health" \
-  -H "x-api-key: <API_KEY>" \
-  -H "User-Agent: DivisandoApp/1.0"
+curl -X GET "http://localhost:5000/health"
 ```
 ```json
 { "status": "ok", "message": "API en funcionamiento" }
@@ -260,9 +265,8 @@ curl -X GET "http://localhost:5000/api/health" \
 
 Health (database):
 ```bash
-curl -X GET "http://localhost:5000/api/health/database" \
-  -H "x-api-key: <API_KEY>" \
-  -H "User-Agent: DivisandoApp/1.0"
+curl -X GET "http://localhost:5000/health/database" \
+  -H "x-api-key: <API_KEY>"
 ```
 ```json
 {
@@ -277,6 +281,9 @@ curl -X GET "http://localhost:5000/api/health/database" \
   "timestamp": "2026-02-10T02:10:00.000Z"
 }
 ```
+
+Compatibilidad:
+- `/api/health` y `/api/health/database` se mantienen disponibles.
 
 ---
 

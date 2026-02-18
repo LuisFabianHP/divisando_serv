@@ -56,10 +56,29 @@ const verificationCode  = async (req, res, next) => {
         // Validar si el código existe
         if (!verificationCode) {
             // Incrementar intentos fallidos en todos los códigos activos del usuario
-            await VerificationCode.updateMany(
-                { userId: user._id, expiresAt: { $gt: new Date() } },
-                { $inc: { attempts: 1 } }
-            );
+            const now = new Date();
+            const latestCode = await VerificationCode.findOne({
+                userId: user._id,
+                expiresAt: { $gt: now }
+            }).sort({ expiresAt: -1 });
+
+            if (latestCode) {
+                const updatedCode = await VerificationCode.findOneAndUpdate(
+                    { _id: latestCode._id },
+                    { $inc: { attempts: 1 } },
+                    { new: true }
+                );
+
+                if (updatedCode && updatedCode.attempts >= updatedCode.maxAttempts) {
+                    updatedCode.isBlocked = true;
+                    await updatedCode.save();
+
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Código bloqueado por exceso de intentos. Solicita un nuevo código.'
+                    });
+                }
+            }
             
             return res.status(400).json({ success: false, error: 'Código inválido.' });
         }
@@ -82,9 +101,7 @@ const verificationCode  = async (req, res, next) => {
             verificationCode.isBlocked = true;
             await verificationCode.save();
             
-            apiLogger.warn({
-                taskName: 'verificationCode',
-                message: 'Código bloqueado por exceso de intentos',
+            apiLogger.warn('Código bloqueado por exceso de intentos', {
                 userId: user._id,
                 email: user.email,
                 attempts: verificationCode.attempts
@@ -109,9 +126,7 @@ const verificationCode  = async (req, res, next) => {
             user.isVerified = true;
             await user.save();
 
-            apiLogger.info({
-                taskName: 'verificationCode',
-                message: 'Cuenta verificada exitosamente',
+            apiLogger.info('Cuenta verificada exitosamente', {
                 userId: user._id,
                 email: user.email
             });
@@ -121,9 +136,7 @@ const verificationCode  = async (req, res, next) => {
 
         if (verificationCode.type === 'password_reset') {
             // Para reset de contraseña devolvemos éxito y datos mínimos para continuar en cliente
-            apiLogger.info({
-                taskName: 'verificationCode',
-                message: 'Código de reset de contraseña verificado',
+            apiLogger.info('Código de reset de contraseña verificado', {
                 userId: user._id,
                 email: user.email
             });
@@ -393,9 +406,7 @@ const forgotPassword = async (req, res, next) => {
         }
 
         // Log de auditoría para solicitud de código de recuperación
-        apiLogger.info({
-            taskName: 'forgotPassword',
-            action: 'recovery_code_requested',
+        apiLogger.info('Solicitud de código de recuperación', {
             userId: user._id,
             email: user.email,
             ip: ip,
@@ -432,10 +443,7 @@ const resetPassword = async (req, res, next) => {
         const verificationCode = await VerificationCode.findOne({ userId: user._id, code, type: 'password_reset' });
         if (!verificationCode || verificationCode.expiresAt < new Date()) {
             // Log de intento fallido
-            apiLogger.warn({
-                taskName: 'resetPassword',
-                action: 'password_reset_failed',
-                reason: 'invalid_or_expired_code',
+            apiLogger.warn('Intento de reset de contraseña fallido - código inválido o expirado', {
                 userId: user._id,
                 email: user.email,
                 ip: ip,
@@ -454,9 +462,7 @@ const resetPassword = async (req, res, next) => {
         await user.save();
 
         // Log de auditoría para cambio exitoso de contraseña
-        apiLogger.info({
-            taskName: 'resetPassword',
-            action: 'password_reset_success',
+        apiLogger.info('Reset de contraseña exitoso', {
             userId: user._id,
             email: user.email,
             ip: ip,

@@ -1,6 +1,7 @@
 const ExchangeRate = require('@models/ExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const { apiLogger } = require('@utils/logger');
+const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 
 /**
  * Función auxiliar para validar parámetros de consulta
@@ -125,5 +126,29 @@ const getAvailableCurrencies = async (req, res, next) => {
   }
 };
 
+/**
+ * Trigger manual exchange-rate refresh.
+ * Runs asynchronously to avoid blocking the request.
+ */
+const triggerExchangeRatesRefresh = async (req, res, next) => {
+  try {
+    updateExchangeRates().catch((error) => {
+      apiLogger.error(`Error en ejecución manual de tasas: ${error.message}`);
+    });
 
-module.exports = { getExchangeRates, getComparisonData, getAvailableCurrencies };
+    return res.status(202).json({
+      success: true,
+      message: 'Actualización de tasas iniciada. Verifica logs para el progreso.',
+    });
+  } catch (error) {
+    apiLogger.error(`Error en triggerExchangeRatesRefresh: ${error.message}`);
+    next(error);
+  }
+};
+
+module.exports = {
+  getExchangeRates,
+  getComparisonData,
+  getAvailableCurrencies,
+  triggerExchangeRatesRefresh,
+};

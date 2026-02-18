@@ -1,16 +1,15 @@
-# � Divisando API | Secure Currency Exchange Backend
+# Divisando API | Secure Currency Exchange Backend
 
-Production-grade REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange rate data with enterprise-level security, multi-provider authentication, and comprehensive testing infrastructure.
+REST API built with Node.js that powers the Divisando mobile app. Provides real-time currency exchange data with security and background tasks for updates.
 
 ## ✨ Key Features
 
 • **Multi-provider authentication system:**
   - Email/password with bcrypt hashing
-  - Google OAuth 2.0 integration (mobile & web)
-  - Apple Sign-In support (iOS/macOS)
-  - Facebook OAuth integration
+  - Google Sign-In for mobile (idToken)
+  - Apple Sign-In for mobile
 • **Advanced security mechanisms:**
-  - JWT with automatic refresh token rotation (7-day expiry)
+  - JWT refresh tokens (7-day expiry)
   - HTTPS encryption with SSL/TLS
   - API key validation middleware
   - Rate limiting per IP and critical endpoints
@@ -34,11 +33,11 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 
 ## 🎯 Real-World Capabilities
 
-• Handles concurrent authentication requests with token rotation  
-• Validates and refreshes expired tokens automatically  
+• Handles concurrent authentication requests with refresh tokens  
+• Validates and refreshes tokens automatically  
 • Delivers exchange rates with historical comparison in <100ms  
 • Blocks brute-force attacks with intelligent rate limiting  
-• Supports multiple OAuth providers seamlessly  
+• Supports Google and Apple sign-in for mobile  
 • Sends verification codes via Mailgun with retry logic  
 • Professional error responses with detailed logging  
 
@@ -47,13 +46,11 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 **Runtime & Framework:**
 - Node.js with Express 4.21+
 - MongoDB with Mongoose ODM
-- MongoMemoryServer for isolated testing
 
 **Security:**
 - bcryptjs for password hashing
 - jsonwebtoken (JWT) with refresh tokens
-- google-auth-library for OAuth 2.0
-- passport (Google & Facebook strategies)
+- google-auth-library for idToken validation
 - express-rate-limit for DDoS protection
 
 **Communication:**
@@ -63,7 +60,6 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 
 **Development & Testing:**
 - Jest testing framework
-- MongoMemoryServer for test isolation
 - Winston for structured logging
 - dotenv for environment management
 
@@ -72,22 +68,22 @@ Production-grade REST API built with Node.js that powers the Divisando mobile ap
 - Environment-based configuration
 - Module aliasing for clean imports
 
-**Perfect example of production-ready API architecture with OAuth integration, token-based authentication, automated testing, and enterprise security patterns.**
+**Production-ready API architecture with token-based authentication, automated tasks, and security patterns.**
 
 ---
 
-# �📌 Documentación del Proyecto - Divisando API
+# Documentación del Proyecto - Divisando API
 
 ## 📖 Introducción
 Divisando API es un servicio backend diseñado para obtener y comparar tasas de cambio entre diferentes monedas. Provee endpoints seguros para recuperar tasas de cambio, realizar comparaciones y manejar autenticación mediante tokens JWT y Refresh Tokens.
 
 ## 🛠️ Configuración y Tecnologías
 - **Backend:** Node.js con Express.
-- **Base de datos:** MongoDB (Atlas o Local con MongoMemoryServer para pruebas).
+- **Base de datos:** MongoDB (Atlas).
 - **Autenticación:** JSON Web Tokens (JWT) con Refresh Tokens.
 - **Seguridad:** HTTPS, API Keys, Rate-Limiting, Validación de User-Agent y CORS.
 - **Logs y Monitoreo:** Winston para manejo de logs.
-- **Pruebas:** Jest y MongoMemoryServer.
+- **Pruebas:** Jest.
 
 ---
 
@@ -112,16 +108,56 @@ Toda la comunicación con la API está cifrada mediante HTTPS. Se configuraron c
 
 ### **Autenticación**
 #### `POST /auth/register`
-Registra un nuevo usuario.
+Registra un nuevo usuario con email y contraseña.
+- Body: `{ email, password, phone }`
+- Response: `{ success: true, message }`
 
 #### `POST /auth/login`
-Autentica un usuario y devuelve un JWT y un Refresh Token.
+Autentica un usuario con email y contraseña.
+- Body: `{ email, password }`
+- Response: `{ success: true, refreshToken, expiresAt }`
+
+#### `POST /auth/google`
+Autentica con Google Sign-In (mobile). Valida y verifica idToken.
+- Body: `{ idToken, email, name, picture }`
+- Response: `{ success: true, refreshToken, expiresAt }`
+
+#### `POST /auth/apple`
+Autentica con Apple Sign-In (mobile). Valida identityToken localmente.
+- Body: `{ identityToken, email, name }`
+- Response: `{ success: true, refreshToken, expiresAt }`
 
 #### `POST /auth/refresh`
-Renueva el Access Token mediante un Refresh Token válido.
+Renueva el Access Token usando un Refresh Token válido.
+- Body: `{ refreshToken }`
+- Response: `{ success: true, accessToken, expiresIn }`
 
 #### `POST /auth/logout`
-Elimina el Refresh Token del usuario cerrando sesión.
+Cierra la sesión del usuario invalidando el Refresh Token.
+- Body: `{ userId }`
+- Response: `{ success: true, message }`
+
+#### `POST /auth/code/verification`
+Verifica un código de 6 dígitos (para registro o recuperación de contraseña).
+- Body: `{ email (o userId), code, codeType: 'account_verification' | 'password_reset' }`
+- Response: 
+  - Registro: `{ success: true, refreshToken, expiresAt }`
+  - Recuperación: `{ success: true, userId, email }`
+
+#### `POST /auth/code/resend`
+Reenvía el código de verificación (con rate limiter: 10min de espera).
+- Body: `{ email }`
+- Response: `{ success: true, message }`
+
+#### `POST /auth/password/forgot`
+Inicia proceso de recuperación de contraseña. Envía código por email.
+- Body: `{ email }`
+- Response: `{ success: true, message, userId }`
+
+#### `POST /auth/password/reset`
+Restablece la contraseña con el código verificado.
+- Body: `{ email, code, newPassword }`
+- Response: `{ success: true, message }`
 
 ### **Monedas y Tasas de Cambio**
 #### `GET /exchange/currencies`
@@ -129,6 +165,9 @@ Devuelve la lista de monedas disponibles.
 
 #### `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 Devuelve el valor actual y el anterior de una moneda, con estado `up` o `dw`.
+
+#### `GET /exchange/:currency`
+Devuelve tasas para una moneda base.
 
 ### **Salud del servicio**
 #### `GET /health`
@@ -140,61 +179,113 @@ Verifica el estado de MongoDB (conectividad, latencia y circuit breaker).
 
 **Ejemplo:**
 ```bash
-curl -H "x-api-key: <TU_API_KEY>" https://tu-dominio.com/api/health/database
+curl -H "x-api-key: <TU_API_KEY>" https://tu-dominio.com/health/database
 ```
 
 **Nota:** Asegura que `API_KEY` este configurada en el entorno (local y produccion).
 
+Compatibilidad:
+- `/api/health` y `/api/health/database` se mantienen disponibles.
+
 ---
 
-## 🔍 Pruebas con Base de Datos en Memoria
-Para evitar el consumo innecesario de recursos y realizar pruebas controladas, se implementó **MongoMemoryServer**, permitiendo crear una base de datos temporal con datos de prueba.
+## 🚀 Installation & Setup
 
-### **Generación de Datos de Prueba**
-Se desarrolló un script que:
-- Inserta datos históricos y actuales con valores aleatorios pero coherentes.
-- Permite simular escenarios donde los valores sean iguales para verificar la búsqueda de registros anteriores.
-- Funciona dentro de un entorno controlado sin afectar la base de datos real.
+### Prerequisites
+- Node.js v16+ 
+- MongoDB Atlas account
+- API keys for external services (Google OAuth, Exchange Rate API, Mailgun)
 
-Para ejecutar:
+### Local Development
 ```bash
-node tests/database/generateTestData.js
+# Clone the repository
+git clone https://github.com/LuisFabianHP/divisando_serv.git
+cd divisando_serv
+
+# Install dependencies
+npm install
+
+# Create .env file with local variables
+cp .env.example .env  # (Edit with your local values)
+
+# Start development server
+npm run dev
+
+# API will be available at http://localhost:5000
 ```
 
-Para consultar registros:
+### Environment Variables Required
+Variables esenciales:
+- `PORT` - Puerto del servidor (default: 5000)
+- `NODE_ENV` - Entorno (development, production)
+- `API_NAME` - Nombre de la aplicación
+- `API_KEY` - Clave para validación de requests
+- `API_ALLOWED_USER_AGENTS` - User-Agent permitidos (ej. DivisandoApp/1.0)
+- `API_CROS_DOMAINS` - Dominios CORS autorizados
+- `MONGO_URI` - Conexión a MongoDB (mongodb+srv://...)
+- `JWT_SECRET` - Secreto para firmar JWT tokens
+- `GOOGLE_CLIENT_ID` - ID de cliente de Google OAuth (para mobile)
+
+Exchange Rate API:
+- `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
+- `EXCHANGE_RATE_API_URL` - URL base (https://v6.exchangerate-api.com/v6/)
+- `EXCHANGE_RATE_CURRENCIES` - Monedas a actualizar (ej. USD,MXN,EUR,CAD)
+- `EXCHANGE_RATE_CRON` - Cron para tarea (ej. 0 * * * * = cada hora)
+- `EXCHANGE_RATE_RECENT_HOURS` - Horas antes de actualizar (evita sobreconsultas)
+
+Email (opcional):
+- `MAILGUN_DOMAIN` - Dominio de Mailgun sandbox
+- `MAILGUN_API_KEY` - API key de Mailgun
+
+Optimización de memoria y MongoDB:
+- `RATE_LIMIT_STORE_MAX_ENTRIES` - Entradas máx en store en memoria (default: 5000)
+- `MONGO_MAX_POOL_SIZE` - Máximo de conexiones simultáneas al pool de MongoDB (default: 10)
+- `MONGO_MIN_POOL_SIZE` - Conexiones mínimas siempre activas en el pool (default: 2)
+- `MONGO_MAX_IDLE_MS` - Tiempo máximo en ms antes de cerrar una conexión inactiva (default: 60000)
+- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 604800, una semana)
+- `MEMORY_MONITOR_CRON` - Monitoreo de memoria (default: */5 * * * *)
+- `GC_CRON` - Garbage collection forzado (default: */30 * * * *)
+
+---
+
+## 🧪 Testing
+
+### Running Tests
 ```bash
-node tests/database/showRecords.Test.js
+# Unit and integration tests
+npm test
+
+# Watch mode
+npm run test:watch
+
+# Coverage report
+npm run test:coverage
 ```
 
-Para eliminar datos de prueba:
+### Manual Testing
+Use tools like Postman or curl to test endpoints:
 ```bash
-node tests/database/clearTestData.js
+# Health check (public endpoint)
+curl http://localhost:5000/health
+
+# Health check with database status (requires API_KEY)
+curl -H "x-api-key: YOUR_API_KEY" http://localhost:5000/health/database
 ```
 
 ---
 
-## 🚀 Pruebas de Carga y Validación Final
-Para garantizar la estabilidad y seguridad del sistema:
-1. **Simulación de alto tráfico** con Postman o Artillery.
-2. **Revisión de logs** en Winston para detectar anomalías.
-3. **Pruebas de endpoints críticos**, asegurando respuestas rápidas y coherentes.
+## 📚 Documentation
+
+For technical and user documentation, see:
+- **[MANUAL_TECNICO.md](./MANUAL_TECNICO.md)** - Technical documentation
+- **[MANUAL_USUARIO.md](./MANUAL_USUARIO.md)** - User guide
 
 ---
 
-## 📌 Conclusión y Siguientes Pasos
-El sistema ha sido diseñado con seguridad y escalabilidad en mente. Próximas mejoras incluyen:
-- Optimización de consultas en MongoDB.
-- Implementación de caché para reducir latencias.
-- Integración con proveedores de autenticación externos como Google y Facebook.
-
-📌 **Última actualización:** Enero 2025
+## Licencia
+MIT
 
 ---
 
-## 🛠️ Cambios recientes (API de autenticación)
-
-- `POST /auth/password/forgot`: ahora devuelve `{ success: true, message, userId }` cuando se encuentra el usuario, para que el cliente pueda reutilizar `userId` si lo desea.
-- `POST /auth/code/verification`: acepta tanto `userId` como `email` en el body; para `account_verification` devuelve `{ success: true, refreshToken, expiresAt }`, y para `password_reset` devuelve `{ success: true, userId, email }` (sin emitir token).
-- `POST /auth/password/reset`: ahora devuelve `{ success: true, message }` al restablecer la contraseña correctamente.
-
-Estos cambios están pensados para alinear la API con la UI móvil que reutiliza la pantalla de verificación tanto para registro como para recuperación de contraseña.
+## Equipo
+🍍LU Devs Team

@@ -16,10 +16,16 @@ class LimitedMemoryStore {
       this.hits.delete(firstKey);
     }
 
-    const record = this.hits.get(key) || { totalHits: 0, resetTime: Date.now() + 60000 };
+    const record = this.hits.get(key) || { 
+      totalHits: 0, 
+      resetTime: new Date(Date.now() + 60000) // Date object para compatibilidad con express-rate-limit
+    };
     record.totalHits++;
     this.hits.set(key, record);
-    return record;
+    return {
+      totalHits: record.totalHits,
+      resetTime: record.resetTime
+    };
   }
 
   decrement(key) {
@@ -37,7 +43,10 @@ class LimitedMemoryStore {
   cleanup() {
     const now = Date.now();
     for (const [key, record] of this.hits.entries()) {
-      if (record.resetTime < now) {
+  const resetTimestamp = record.resetTime instanceof Date 
+    ? record.resetTime.getTime() 
+    : record.resetTime;
+  if (resetTimestamp < now) {
         this.hits.delete(key);
       }
     }
@@ -54,7 +63,7 @@ const store = new LimitedMemoryStore(MAX_STORE_ENTRIES);
 
 const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // Ventana de 1 minuto
-  max: 50, // Máximo de 50 solicitudes por IP
+  max: parseInt(process.env.RATE_LIMIT_MAX || '30', 10), // Máximo de solicitudes por IP, por defecto 30
   message: {
     error: 'Demasiadas solicitudes desde esta IP, inténtalo de nuevo después de 1 minuto.',
   },
@@ -63,7 +72,7 @@ const apiRateLimiter = rateLimit({
   store,
   keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
   handler: (req, res, next) => {
-    const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000) || 60;
+  const retryAfter = Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000) || 60;
     res.set('Retry-After', retryAfter);
 
     const error = new Error('Demasiadas solicitudes desde esta IP.');
@@ -75,4 +84,6 @@ const apiRateLimiter = rateLimit({
   }
 });
 
+// Exportar store para limpieza en gracefulShutdown
 module.exports = apiRateLimiter;
+module.exports.store = store;

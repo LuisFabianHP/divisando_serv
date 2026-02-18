@@ -1,6 +1,5 @@
 const cron = require('node-cron');
 const axios = require('axios');
-const mongoose = require('mongoose');
 const ExchangeRate = require('@models/ExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const { taskLogger } = require('@utils/logger');
@@ -44,6 +43,9 @@ const getSelectedCurrencies = async () => {
 
 const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
 
+let exchangeRatesRunning = false;
+let exchangeRatesTask = null;
+
 
 /**
  * Verifica si una moneda tiene registros recientes (hoy).
@@ -58,7 +60,7 @@ async function isCurrencyRecentlyFetched(currency) {
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
       createdAt: { $gte: since },
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).select('_id createdAt').lean();
 
     if (recentRecord) {
       taskLogger.info(`La moneda ${currency} ya fue actualizada recientemente.`);
@@ -106,7 +108,8 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
     }
 
     const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`);
-    taskLogger.info(`Respuesta de la API para ${baseCurrency}:`, response.data);
+    const rateCount = Object.keys(response.data?.conversion_rates || {}).length;
+    taskLogger.info(`Respuesta de la API para ${baseCurrency}: ${rateCount} tasas.`);
 
     const rates = Object.entries(response.data.conversion_rates).map(([currency, value]) => ({
       currency,
@@ -132,10 +135,7 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
  */
 async function updateCurrencyList() {
   try {
-    const latestRecords = await ExchangeRate.find().sort({ updatedAt: -1 }).exec();
-
-    const currenciesSet = new Set(latestRecords.map(record => record.base_currency));
-    const currencies = Array.from(currenciesSet);
+    const currencies = await ExchangeRate.distinct('base_currency');
 
     await AvailableCurrencies.updateOne(
       {},
@@ -153,6 +153,12 @@ async function updateCurrencyList() {
  * Cron job para actualizar tasas de cambio.
  */
 async function updateExchangeRates() {
+  if (exchangeRatesRunning) {
+    taskLogger.warn('La actualización de tasas ya está en ejecución. Saltando nueva ejecución.');
+    return;
+  }
+
+  exchangeRatesRunning = true;
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
 
   try {
@@ -182,10 +188,35 @@ async function updateExchangeRates() {
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
+  } finally {
+    exchangeRatesRunning = false;
   }
 }
 
-// Programar el cron job (cada hora)
-cron.schedule(CRON_SCHEDULE, updateExchangeRates);
+const runExchangeRates = taskErrorHandler(updateExchangeRates);
 
-module.exports = taskErrorHandler(updateExchangeRates);
+// Programar el cron job (cada hora)
+const scheduleExchangeRates = () => {
+  if (exchangeRatesTask) {
+    exchangeRatesTask.stop();
+  }
+
+  exchangeRatesTask = cron.schedule(CRON_SCHEDULE, runExchangeRates);
+  return exchangeRatesTask;
+};
+
+const stopExchangeRates = () => {
+  if (exchangeRatesTask) {
+    exchangeRatesTask.stop();
+    if (typeof exchangeRatesTask.destroy === 'function') {
+      exchangeRatesTask.destroy();
+    }
+    exchangeRatesTask = null;
+  }
+};
+
+module.exports = {
+  updateExchangeRates: runExchangeRates,
+  scheduleExchangeRates,
+  stopExchangeRates,
+};

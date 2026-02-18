@@ -1,0 +1,8 @@
+# Excluir carpeta de documentación del deploy
+docs/
+
+# Excluir otros archivos innecesarios
+*.md
+.gitignore
+.env.local
+.DS_Store
