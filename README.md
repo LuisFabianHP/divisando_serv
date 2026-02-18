@@ -215,12 +215,36 @@ npm run dev
 ```
 
 ### Environment Variables Required
-- `MONGO_URI` - MongoDB connection string
-- `JWT_SECRET`, `JWT_REFRESH_SECRET` - Token signing keys
-- `GOOGLE_CLIENT_ID` - Google OAuth configuration
-- `API_KEY` - API key for request validation
-- `EXCHANGE_RATE_API_KEY` - Exchange rate service key
-- `MAILGUN_DOMAIN`, `MAILGUN_API_KEY` - Email service (optional)
+Variables esenciales:
+- `PORT` - Puerto del servidor (default: 5000)
+- `NODE_ENV` - Entorno (development, production)
+- `API_NAME` - Nombre de la aplicación
+- `API_KEY` - Clave para validación de requests
+- `API_ALLOWED_USER_AGENTS` - User-Agent permitidos (ej. DivisandoApp/1.0)
+- `API_CROS_DOMAINS` - Dominios CORS autorizados
+- `MONGO_URI` - Conexión a MongoDB (mongodb+srv://...)
+- `JWT_SECRET` - Secreto para firmar JWT tokens
+- `GOOGLE_CLIENT_ID` - ID de cliente de Google OAuth (para mobile)
+
+Exchange Rate API:
+- `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
+- `EXCHANGE_RATE_API_URL` - URL base (https://v6.exchangerate-api.com/v6/)
+- `EXCHANGE_RATE_CURRENCIES` - Monedas a actualizar (ej. USD,MXN,EUR,CAD)
+- `EXCHANGE_RATE_CRON` - Cron para tarea (ej. 0 * * * * = cada hora)
+- `EXCHANGE_RATE_RECENT_HOURS` - Horas antes de actualizar (evita sobreconsultas)
+
+Email (opcional):
+- `MAILGUN_DOMAIN` - Dominio de Mailgun sandbox
+- `MAILGUN_API_KEY` - API key de Mailgun
+
+Optimización de memoria y MongoDB:
+- `RATE_LIMIT_STORE_MAX_ENTRIES` - Entradas máx en store en memoria (default: 5000)
+- `MONGO_MAX_POOL_SIZE` - Máximo de conexiones simultáneas al pool de MongoDB (default: 10)
+- `MONGO_MIN_POOL_SIZE` - Conexiones mínimas siempre activas en el pool (default: 2)
+- `MONGO_MAX_IDLE_MS` - Tiempo máximo en ms antes de cerrar una conexión inactiva (default: 60000)
+- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 604800, una semana)
+- `MEMORY_MONITOR_CRON` - Monitoreo de memoria (default: */5 * * * *)
+- `GC_CRON` - Garbage collection forzado (default: */30 * * * *)
 
 ---
 

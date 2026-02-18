@@ -88,11 +88,11 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
 
       mongoose.set('strictQuery', false);
       
-      // Connection pool configurable para escalar: plan gratuito (10/2), plan pro (50/5)
+      // Pool configurable: usa MONGO_MAX_POOL_SIZE y MONGO_MIN_POOL_SIZE de .env o valores por defecto
       const maxPoolSize = parseInt(process.env.MONGO_MAX_POOL_SIZE || '10', 10);
       const minPoolSize = parseInt(process.env.MONGO_MIN_POOL_SIZE || '2', 10);
       const maxIdleTimeMS = parseInt(process.env.MONGO_MAX_IDLE_MS || '60000', 10);
-      
+
       const conn = await mongoose.connect(mongoUri, {
         serverSelectionTimeoutMS: connectionTimeout,
         socketTimeoutMS: connectionTimeout * 4.5,
