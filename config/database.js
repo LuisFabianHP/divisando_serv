@@ -1,3 +1,13 @@
+/**
+ * SOLO PARA TEST: Permite resetear el estado de conexión y circuit breaker.
+ * Mantener este código en futuros merges desde dev.
+ */
+function resetConnectionState() {
+  connectionStatus = 'disconnected';
+  lastConnectionAttempt = null;
+  consecutiveFailures = 0;
+}
+
 const mongoose = require('mongoose');
 let connectionStatus = 'disconnected'; // Estados: disconnected, connecting, connected, failed
 let lastConnectionAttempt = null;
@@ -174,4 +184,4 @@ const getConnectionStatus = async () => {
   return status;
 };
 
-module.exports = { connectDB, closeDB, getConnectionStatus };
+module.exports = { connectDB, closeDB, getConnectionStatus, resetConnectionState };
