@@ -88,6 +88,7 @@ function handleApiError(error, baseCurrency) {
     taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`, {
       stack: error.stack,
     });
+    console.error(`Error inesperado al procesar ${baseCurrency}. Consulta los logs para más detalles.`);
     throw error;
   }
 }
@@ -180,6 +181,7 @@ async function updateExchangeRates() {
           return; // Detener todo el proceso inmediatamente
         } else {
           taskLogger.error(`Error inesperado al procesar ${baseCurrency}: ${error.message}`);
+          console.error(`Error inesperado al procesar ${baseCurrency}. Consulta los logs para más detalles.`);
         }
       }
     }
@@ -188,6 +190,7 @@ async function updateExchangeRates() {
     await updateCurrencyList();
   } catch (error) {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
+    console.error('Error durante la actualización de tasas de cambio. Consulta los logs para más detalles.');
   } finally {
     exchangeRatesRunning = false;
   }
