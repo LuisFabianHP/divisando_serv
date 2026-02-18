@@ -109,6 +109,7 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
     } catch (error) {
       const errorInfo = categorizeMongoError(error);
       
+      // Solo mostrar mensaje descriptivo en consola
       console.error(`❌ [Intento ${attempt}/${retries}] Error de conexión (${errorInfo.type}): ${errorInfo.message}`);
 
       // Si el error no es reintentar, fallar inmediatamente
