@@ -16,6 +16,8 @@ function forceGarbageCollection() {
     const freedMB = ((beforeMem - afterMem) / 1024 / 1024).toFixed(2);
     
     taskLogger.info(`[GC] Garbage collection ejecutado. Memoria liberada: ${freedMB}MB`);
+  }
+}
 
 function scheduleGarbageCollector() {
   if (garbageCollectorTask) {
