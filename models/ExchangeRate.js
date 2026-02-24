@@ -29,8 +29,17 @@ const exchangeRateSchema = new mongoose.Schema(
 );
 
 // Índice TTL y compuesto para retención e histórico
-const ttlSeconds = parseInt(process.env.MONGO_TTL_SECONDS || '604800', 10); // 7 días por defecto
+
+// TTL ajustado a 3 meses (90 días)
+const ttlSeconds = parseInt(process.env.MONGO_TTL_SECONDS || String(60 * 60 * 24 * 90), 10); // 90 días por defecto
 exchangeRateSchema.index({ createdAt: 1 }, { expireAfterSeconds: ttlSeconds });
 exchangeRateSchema.index({ base_currency: 1, createdAt: 1 });
+
+/**
+ * Estrategia de retención e histórico:
+ * - Los registros de ExchangeRate se eliminan automáticamente después de 90 días (TTL).
+ * - El índice compuesto base_currency + createdAt permite consultas eficientes por moneda y fecha.
+ * - Puedes ajustar el TTL cambiando la variable de entorno MONGO_TTL_SECONDS.
+ */
 
 module.exports = mongoose.model('ExchangeRate', exchangeRateSchema);
