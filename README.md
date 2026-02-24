@@ -242,7 +242,13 @@ Optimización de memoria y MongoDB:
 - `MONGO_MAX_POOL_SIZE` - Máximo de conexiones simultáneas al pool de MongoDB (default: 10)
 - `MONGO_MIN_POOL_SIZE` - Conexiones mínimas siempre activas en el pool (default: 2)
 - `MONGO_MAX_IDLE_MS` - Tiempo máximo en ms antes de cerrar una conexión inactiva (default: 60000)
-- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 604800, una semana)
+- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 7776000, tres meses)
+
+### Estrategia de retención e histórico
+- Los registros de ExchangeRate se eliminan automáticamente después de 90 días (TTL).
+- El índice compuesto base_currency + createdAt permite consultas eficientes por moneda y fecha.
+- Puedes ajustar el TTL cambiando la variable de entorno MONGO_TTL_SECONDS.
+- Esta estrategia mantiene la base limpia, optimiza el rendimiento y permite conservar un histórico útil sin exceder límites del plan free.
 - `MEMORY_MONITOR_CRON` - Monitoreo de memoria (default: */5 * * * *)
 - `GC_CRON` - Garbage collection forzado (default: */30 * * * *)
 
