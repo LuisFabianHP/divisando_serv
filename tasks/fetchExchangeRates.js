@@ -19,8 +19,20 @@ const parseCurrencyList = (value) => {
     .filter(Boolean);
 };
 
+
 const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
 const DEFAULT_CURRENCIES = parseCurrencyList(process.env.EXCHANGE_RATE_CURRENCIES);
+
+// Advertencia en log si la configuración es riesgosa
+if (DEFAULT_CURRENCIES.length > 10) {
+  taskLogger.warn('EXCHANGE_RATE_CURRENCIES tiene más de 10 monedas. Esto puede exceder el límite de tu plan ExchangeRate-API.');
+}
+if (process.env.EXCHANGE_RATE_CRON && /\*\//.test(process.env.EXCHANGE_RATE_CRON) && process.env.EXCHANGE_RATE_CRON.includes('1')) {
+  taskLogger.warn('EXCHANGE_RATE_CRON está configurado para ejecutarse cada minuto. Esto puede causar bloqueos por límite de la API.');
+}
+if (Number(process.env.EXCHANGE_RATE_RECENT_HOURS) < 1) {
+  taskLogger.warn('EXCHANGE_RATE_RECENT_HOURS es menor a 1. Esto puede causar sobreconsultas y bloqueos por límite de la API.');
+}
 
 const getCurrenciesFromDb = async () => {
   const result = await AvailableCurrencies.findOne({}).lean();
