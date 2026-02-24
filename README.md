@@ -226,12 +226,37 @@ Variables esenciales:
 - `JWT_SECRET` - Secreto para firmar JWT tokens
 - `GOOGLE_CLIENT_ID` - ID de cliente de Google OAuth (para mobile)
 
-Exchange Rate API:
+#### Exchange Rate API (Configuración recomendada)
 - `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
 - `EXCHANGE_RATE_API_URL` - URL base (https://v6.exchangerate-api.com/v6/)
 - `EXCHANGE_RATE_CURRENCIES` - Monedas a actualizar (ej. USD,MXN,EUR,CAD)
-- `EXCHANGE_RATE_CRON` - Cron para tarea (ej. 0 * * * * = cada hora)
-- `EXCHANGE_RATE_RECENT_HOURS` - Horas antes de actualizar (evita sobreconsultas)
+  - **Recomendado para pruebas:** `USD,MXN,EUR,CAD`
+  - **Producción:** Solo agregar más monedas si el plan lo permite.
+  - **Modo especial:** Si usas `ALL`, la lista se toma de la base de datos (`AvailableCurrencies`).
+- `EXCHANGE_RATE_CRON` - Cron para tarea (ej. `0 * * * *` = cada hora)
+  - **Pruebas:** cada 6h (`0 */6 * * *`)
+  - **Producción:** cada 1h (`0 * * * *`)
+  - **Advertencia:** Frecuencias menores pueden causar bloqueos por límite de la API.
+- `EXCHANGE_RATE_RECENT_HOURS` - Horas antes de volver a actualizar una moneda (evita sobreconsultas)
+  - **Pruebas:** `6`
+  - **Producción:** `1`
+  - **Advertencia:** Si es muy bajo, puedes exceder el límite de la API.
+
+**Ejemplo seguro para pruebas:**
+```
+EXCHANGE_RATE_CURRENCIES=USD,MXN,EUR,CAD
+EXCHANGE_RATE_CRON=0 */6 * * *
+EXCHANGE_RATE_RECENT_HOURS=6
+```
+
+**Ejemplo seguro para producción:**
+```
+EXCHANGE_RATE_CURRENCIES=USD,MXN,EUR,CAD
+EXCHANGE_RATE_CRON=0 * * * *
+EXCHANGE_RATE_RECENT_HOURS=1
+```
+
+**Advertencia:** Si configuras muchas monedas o una frecuencia muy alta, puedes alcanzar el límite de peticiones de tu plan ExchangeRate-API y recibir errores 429.
 
 Email (opcional):
 - `MAILGUN_DOMAIN` - Dominio de Mailgun sandbox
