@@ -225,6 +225,19 @@ Variables esenciales:
 - `MONGO_URI` - Conexión a MongoDB (mongodb+srv://...)
 - `JWT_SECRET` - Secreto para firmar JWT tokens
 - `GOOGLE_CLIENT_ID` - ID de cliente de Google OAuth (para mobile)
+- `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
+- `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
+
+#### Mailgun en Railway (nota importante)
+- El servicio de correo usa inicialización dinámica de variables de entorno en tiempo de envío.
+- Esto evita que `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` queden en `undefined` cuando Railway inyecta variables después de cargar módulos.
+- Si faltan variables, el sistema entra en modo demo (logs en consola) sin romper el flujo de registro/reset.
+
+**Checklist rápido en Railway:**
+1. Verifica que existan `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` en Variables.
+2. Confirma redeploy/restart del servicio tras actualizar variables.
+3. Prueba registro o reenvío de código y revisa logs.
+4. Debe aparecer `✅ Mailgun configurado correctamente` y no el warning de variables faltantes.
 
 #### Exchange Rate API (Configuración recomendada)
 - `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
