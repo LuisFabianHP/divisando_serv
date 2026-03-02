@@ -2,15 +2,34 @@ const cron = require('node-cron');
 const axios = require('axios');
 const ExchangeRate = require('@models/ExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
+const RateChangeAlert = require('@models/RateChangeAlert');
 const { taskLogger } = require('@utils/logger');
 const taskErrorHandler = require('@middlewares/taskErrorHandler');
 
-// Código de error HTTP para indicar que se ha excedido el límite de solicitudes permitido por la API
+// =========================
+// Configuración global
+// =========================
+
+// Código de error HTTP para límite de solicitudes
 const RATE_LIMIT_ERROR = 429;
 
-// Cron schedule para ejecutar la tarea de actualización de tasas de cambio
+// Cron schedule para ejecutar la tarea de actualización de tasas
 const CRON_SCHEDULE = process.env.EXCHANGE_RATE_CRON || '0 * * * *';
 
+// Monedas por defecto y configuración de entrada
+const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
+
+// Ventanas y umbrales
+const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
+const RATE_ALERT_MIN_CHANGE_PERCENT = Number(process.env.RATE_ALERT_MIN_CHANGE_PERCENT || '2');
+
+// Estado de ejecución del cron
+let exchangeRatesRunning = false;
+let exchangeRatesTask = null;
+
+/**
+ * Parsea lista de monedas desde variable de entorno.
+ */
 const parseCurrencyList = (value) => {
   if (!value) return [];
   return value
@@ -19,8 +38,6 @@ const parseCurrencyList = (value) => {
     .filter(Boolean);
 };
 
-
-const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
 const DEFAULT_CURRENCIES = parseCurrencyList(process.env.EXCHANGE_RATE_CURRENCIES);
 
 // Advertencia en log si la configuración es riesgosa
@@ -34,11 +51,17 @@ if (Number(process.env.EXCHANGE_RATE_RECENT_HOURS) < 1) {
   taskLogger.warn('EXCHANGE_RATE_RECENT_HOURS es menor a 1. Esto puede causar sobreconsultas y bloqueos por límite de la API.');
 }
 
+/**
+ * Obtiene lista de monedas disponibles desde la base de datos.
+ */
 const getCurrenciesFromDb = async () => {
   const result = await AvailableCurrencies.findOne({}).lean();
   return Array.isArray(result?.currencies) ? result.currencies : [];
 };
 
+/**
+ * Determina la lista final de monedas a procesar.
+ */
 const getSelectedCurrencies = async () => {
   if (DEFAULT_CURRENCIES.includes('ALL')) {
     const dbList = await getCurrenciesFromDb();
@@ -53,10 +76,73 @@ const getSelectedCurrencies = async () => {
   return DEFAULT_CURRENCIES.length > 0 ? DEFAULT_CURRENCIES : SAFE_DEFAULT_CURRENCIES;
 };
 
-const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
+/**
+ * Convierte un array de tasas en mapa currency->value para consultas rápidas.
+ */
+const getRateMap = (rates = []) => {
+  const map = new Map();
+  rates.forEach((item) => {
+    if (item && item.currency && typeof item.value === 'number') {
+      map.set(String(item.currency).toUpperCase(), item.value);
+    }
+  });
+  return map;
+};
 
-let exchangeRatesRunning = false;
-let exchangeRatesTask = null;
+/**
+ * Detecta cambios significativos y guarda alertas por par de monedas.
+ */
+const detectAndStoreRateChanges = async (baseCurrency, currentRates, sourceUpdatedAt) => {
+  try {
+    const previousDoc = await ExchangeRate.findOne({ base_currency: baseCurrency })
+      .sort({ createdAt: -1 })
+      .select('rates')
+      .lean();
+
+    if (!previousDoc || !Array.isArray(previousDoc.rates) || previousDoc.rates.length === 0) {
+      return;
+    }
+
+    const previousRateMap = getRateMap(previousDoc.rates);
+    const alertsToInsert = [];
+
+    for (const current of currentRates) {
+      const targetCurrency = String(current.currency || '').toUpperCase();
+      const currentRate = current.value;
+
+      if (!targetCurrency || typeof currentRate !== 'number') {
+        continue;
+      }
+
+      const previousRate = previousRateMap.get(targetCurrency);
+      if (typeof previousRate !== 'number' || previousRate <= 0 || previousRate === currentRate) {
+        continue;
+      }
+
+      const changePercent = ((currentRate - previousRate) / previousRate) * 100;
+      if (Math.abs(changePercent) < RATE_ALERT_MIN_CHANGE_PERCENT) {
+        continue;
+      }
+
+      alertsToInsert.push({
+        baseCurrency,
+        targetCurrency,
+        previousRate,
+        currentRate,
+        changePercent,
+        direction: changePercent > 0 ? 'up' : 'dw',
+        sourceUpdatedAt,
+      });
+    }
+
+    if (alertsToInsert.length > 0) {
+      await RateChangeAlert.insertMany(alertsToInsert, { ordered: false });
+      taskLogger.info(`Alertas de cambio guardadas para ${baseCurrency}: ${alertsToInsert.length}`);
+    }
+  } catch (error) {
+    taskLogger.error(`Error detectando cambios de tasa para ${baseCurrency}: ${error.message}`);
+  }
+};
 
 
 /**
@@ -129,10 +215,14 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       value,
     }));
 
+    const sourceUpdatedAt = new Date(response.data.time_last_update_utc);
+
+    await detectAndStoreRateChanges(baseCurrency, rates, sourceUpdatedAt);
+
     await ExchangeRate.create({
       base_currency: baseCurrency,
       rates,
-      date: new Date(response.data.time_last_update_utc),
+      date: sourceUpdatedAt,
     });
 
     taskLogger.info(
