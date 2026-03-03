@@ -1,5 +1,12 @@
 require('module-alias/register');
-require('dotenv').config();
+const dotenv = require('dotenv');
+const { normalizeEnvValue } = require('./utils/envNormalizer');
+
+const isProductionRuntime = normalizeEnvValue(process.env.NODE_ENV).toLowerCase() === 'production';
+
+if (!isProductionRuntime) {
+  dotenv.config();
+}
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
