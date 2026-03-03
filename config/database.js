@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const { normalizeEnvValue } = require('../utils/envNormalizer');
+
 let connectionStatus = 'disconnected'; // Estados: disconnected, connecting, connected, failed
 let lastConnectionAttempt = null;
 let consecutiveFailures = 0;
@@ -80,7 +82,7 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
 
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      const mongoUri = process.env.MONGO_URI;
+      const mongoUri = normalizeEnvValue(process.env.MONGO_URI);
 
       if (!mongoUri) {
         throw new Error('MONGO_URI no está definida en las variables de entorno');
@@ -131,7 +133,7 @@ const connectDB = async (retries = 5, initialDelay = 3000, connectionTimeout = 1
         connectionStatus = 'failed';
         consecutiveFailures++;
         
-        if (process.env.NODE_ENV === 'production') {
+        if (normalizeEnvValue(process.env.NODE_ENV).toLowerCase() === 'production') {
           process.exit(1); // En producción, detener servidor
         } else {
           throw new Error(`Conexión a MongoDB falló después de ${retries} intentos: ${errorInfo.message}`);
