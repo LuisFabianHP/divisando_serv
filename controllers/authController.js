@@ -5,6 +5,22 @@ const { sendVerificationEmail, sendPasswordChangedEmail } = require('@services/e
 const { apiLogger } = require('@utils/logger');
 const { OAuth2Client } = require('google-auth-library');
 
+const getGoogleAudiences = () => {
+    const direct = [
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_WEB_CLIENT_ID,
+        process.env.GOOGLE_ANDROID_CLIENT_ID,
+        process.env.GOOGLE_IOS_CLIENT_ID,
+    ].filter(Boolean);
+
+    const fromList = (process.env.GOOGLE_CLIENT_IDS || '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+    return [...new Set([...direct, ...fromList])];
+};
+
 /**
  * Registro de nuevos usuarios.
  */
@@ -192,11 +208,17 @@ const loginWithGoogle = async (req, res, next) => {
             return res.status(400).json({ error: 'idToken es requerido.' });
         }
 
+        const googleAudiences = getGoogleAudiences();
+        if (googleAudiences.length === 0) {
+            apiLogger.error('Configuración Google incompleta: falta GOOGLE_CLIENT_ID o audiencias equivalentes.');
+            return res.status(500).json({ error: 'Configuración Google incompleta en servidor.' });
+        }
+
         // Verificar el idToken con Google
-        const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+        const client = new OAuth2Client(googleAudiences[0]);
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: googleAudiences,
         });
         
         const payload = ticket.getPayload();
