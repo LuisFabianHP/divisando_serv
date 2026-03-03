@@ -10,7 +10,7 @@ const verificationCodeSchema = new mongoose.Schema({
   isBlocked: { type: Boolean, default: false } // Bloqueo por exceder intentos
 },
 {
-    collection: 'VerificationCode', // Nombre de la colección en MongoDB
+  collection: 'verificationCode', // Nombre de la colección en MongoDB
     timestamps: true, // Añade createdAt y updatedAt
 });
 
