@@ -1,6 +1,4 @@
-require("dotenv").config();
 const http = require("http");
-const app = require("./app");
 const { connectDB, closeDB } = require("@config/database");
 const { scheduleExchangeRates, stopExchangeRates } = require("@tasks/fetchExchangeRates");
 const { scheduleCleanup, stopCleanup } = require("@tasks/cleanupUnverifiedUsers");
@@ -9,7 +7,16 @@ const { scheduleGarbageCollector, stopGarbageCollector } = require("@tasks/garba
 const apiRateLimiter = require("@middlewares/rateLimiter");
 const { closeLoggers } = require("@utils/logger");
 const { createGracefulShutdown } = require("@utils/gracefulShutdown");
+const { normalizeEnvValue } = require("./utils/envNormalizer");
 const dotenv = require('dotenv');
+
+const isProductionRuntime = normalizeEnvValue(process.env.NODE_ENV).toLowerCase() === "production";
+
+if (!isProductionRuntime) {
+  dotenv.config();
+}
+
+const app = require("./app");
 const PORT = process.env.PORT || 8080;
 const API_NAME = process.env.API_NAME;
 
@@ -20,7 +27,7 @@ let memoryLogInterval = null;
 connectDB()
 .then(() => {
   // Verifica si estamos en producción o desarrollo
-  const isProduction = process.env.NODE_ENV === "production";
+  const isProduction = normalizeEnvValue(process.env.NODE_ENV).toLowerCase() === "production";
 
   if (isProduction) {
     console.log(`🚀 ${API_NAME} - Servidor corriendo en \x1b[35mMODO PRODUCCIÓN\x1b[0m`);
