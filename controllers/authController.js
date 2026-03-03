@@ -5,6 +5,16 @@ const { sendVerificationEmail, sendPasswordChangedEmail } = require('@services/e
 const { apiLogger } = require('@utils/logger');
 const { OAuth2Client } = require('google-auth-library');
 
+const normalizeEnvValue = (value) => {
+    if (!value) return '';
+
+    return value
+        .trim()
+        .replace(/^"|"$/g, '')
+        .replace(/^'|'$/g, '')
+        .trim();
+};
+
 const getGoogleAudiences = () => {
     const direct = [
         process.env.GOOGLE_CLIENT_ID,
@@ -13,12 +23,12 @@ const getGoogleAudiences = () => {
         process.env.GOOGLE_IOS_CLIENT_ID,
     ]
         .filter(Boolean)
-        .map((value) => value.trim())
+        .map((value) => normalizeEnvValue(value))
         .filter(Boolean);
 
     const fromList = (process.env.GOOGLE_CLIENT_IDS || '')
         .split(',')
-        .map((value) => value.trim())
+        .map((value) => normalizeEnvValue(value))
         .filter(Boolean);
 
     return [...new Set([...direct, ...fromList])];
