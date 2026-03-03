@@ -1,3 +1,4 @@
+require('module-alias/register');
 const http = require("http");
 const { connectDB, closeDB } = require("@config/database");
 const { scheduleExchangeRates, stopExchangeRates } = require("@tasks/fetchExchangeRates");
