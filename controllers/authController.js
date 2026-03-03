@@ -11,7 +11,10 @@ const getGoogleAudiences = () => {
         process.env.GOOGLE_WEB_CLIENT_ID,
         process.env.GOOGLE_ANDROID_CLIENT_ID,
         process.env.GOOGLE_IOS_CLIENT_ID,
-    ].filter(Boolean);
+    ]
+        .filter(Boolean)
+        .map((value) => value.trim())
+        .filter(Boolean);
 
     const fromList = (process.env.GOOGLE_CLIENT_IDS || '')
         .split(',')
@@ -218,14 +221,28 @@ const loginWithGoogle = async (req, res, next) => {
             return res.status(500).json({ error: 'Configuración Google incompleta en servidor.' });
         }
 
-        // Verificar el idToken con Google
+        // Verificar firma/issuer/expiración del idToken con Google
         const client = new OAuth2Client(googleAudiences[0]);
         const ticket = await client.verifyIdToken({
             idToken,
-            audience: googleAudiences,
         });
         
         const payload = ticket.getPayload();
+        const tokenAudience = (payload?.aud || '').trim();
+        const tokenAuthorizedParty = (payload?.azp || '').trim();
+
+        const audienceMatches = googleAudiences.includes(tokenAudience);
+        const azpMatches = tokenAuthorizedParty ? googleAudiences.includes(tokenAuthorizedParty) : false;
+
+        if (!audienceMatches && !azpMatches) {
+            apiLogger.error('Error en loginWithGoogle: Wrong recipient, payload audience != requiredAudience', {
+                tokenAudience,
+                tokenAuthorizedParty,
+                configuredAudiences: googleAudiences,
+            });
+            return res.status(401).json({ error: 'Token de Google inválido.' });
+        }
+
         const { sub: googleId, email, name } = payload;
 
         // Buscar o crear usuario
