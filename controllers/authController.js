@@ -3,17 +3,8 @@ const VerificationCode = require('@models/VerificationCode');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { sendVerificationEmail, sendPasswordChangedEmail } = require('@services/emailService.js');
 const { apiLogger } = require('@utils/logger');
+const { normalizeEnvValue } = require('@utils/envNormalizer');
 const { OAuth2Client } = require('google-auth-library');
-
-const normalizeEnvValue = (value) => {
-    if (!value) return '';
-
-    return value
-        .trim()
-        .replace(/^"|"$/g, '')
-        .replace(/^'|'$/g, '')
-        .trim();
-};
 
 const getGoogleAudiences = () => {
     const direct = [
