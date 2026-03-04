@@ -254,6 +254,10 @@ Variables esenciales:
   - **Pruebas:** `6`
   - **Producción:** `1`
   - **Advertencia:** Si es muy bajo, puedes exceder el límite de la API.
+- `APP_RATE_POLL_INTERVAL_MINUTES` - Intervalo sugerido de polling para app (minutos), devuelto por `GET /exchange/compare`
+  - **Pruebas:** `30`
+  - **Producción:** `60`
+  - El cliente puede usar este valor para ajustar su timer sin redeploy.
 
 **Ejemplo seguro para pruebas:**
 ```
