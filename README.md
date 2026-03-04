@@ -224,7 +224,13 @@ Variables esenciales:
 - `API_CROS_DOMAINS` - Dominios CORS autorizados
 - `MONGO_URI` - Conexión a MongoDB (mongodb+srv://...)
 - `JWT_SECRET` - Secreto para firmar JWT tokens
-- `GOOGLE_CLIENT_ID` - ID de cliente de Google OAuth (para mobile)
+- `GOOGLE_CLIENT_ID` - ID principal de cliente Google OAuth (compatibilidad)
+- `GOOGLE_WEB_CLIENT_ID` - Client ID Web permitido para validar `aud`
+- `GOOGLE_ANDROID_CLIENT_ID` - Client ID Android permitido para validar `aud`/`azp`
+- `GOOGLE_IOS_CLIENT_ID` - Client ID iOS permitido para validar `aud`/`azp`
+- `GOOGLE_CLIENT_IDS` - Lista adicional separada por comas de audiencias permitidas
+  - Ejemplo: `GOOGLE_CLIENT_IDS=web-id.apps.googleusercontent.com,android-id.apps.googleusercontent.com,ios-id.apps.googleusercontent.com`
+  - Recomendación Railway: declarar explícitamente los IDs usados por cada plataforma para evitar `401 Token de Google inválido` por desalineación de audiencia.
 - `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
 - `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
 
