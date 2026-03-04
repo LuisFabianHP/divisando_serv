@@ -58,6 +58,10 @@ const getExchangeRates = async (req, res, next) => {
 const getComparisonData = async (req, res, next) => {
   try {
     const { base, target } = validateCurrencies(req.query.baseCurrency, req.query.targetCurrency);
+    const knownUpdatedAt = req.query.knownUpdatedAt;
+    const knownCurrentRate = Number(req.query.knownCurrentRate);
+    const pollIntervalMinutes = Number(process.env.APP_RATE_POLL_INTERVAL_MINUTES || '30');
+
     // Obtener el registro más reciente
     const baseData = await ExchangeRate.findOne({ base_currency: base }).sort({ updatedAt: -1 }).exec();
 
@@ -76,6 +80,21 @@ const getComparisonData = async (req, res, next) => {
     }
 
     const currentRate = currentRateEntry.value;
+
+    if (knownUpdatedAt && Number.isFinite(knownCurrentRate)) {
+      const knownUpdatedAtMs = Date.parse(knownUpdatedAt);
+      const latestUpdatedAtMs = Date.parse(baseData.updatedAt?.toISOString?.() || baseData.updatedAt);
+
+      if (Number.isFinite(knownUpdatedAtMs) && Number.isFinite(latestUpdatedAtMs)) {
+        const sameTimestamp = knownUpdatedAtMs === latestUpdatedAtMs;
+        const sameRate = knownCurrentRate === currentRate;
+
+        if (sameTimestamp && sameRate) {
+          return res.status(204).set('X-Poll-Interval-Minutes', String(pollIntervalMinutes)).end();
+        }
+      }
+    }
+
     // Buscar el valor anterior más antiguo que sea diferente al actual
     const previousRateDoc = await ExchangeRate.findOne({
       base_currency: base,
@@ -98,6 +117,8 @@ const getComparisonData = async (req, res, next) => {
       previousRate,
       updatedAt: baseData.updatedAt,
       status,
+      hasChanges: true,
+      pollIntervalMinutes,
     });
   } catch (error) {
     apiLogger.error(`Error en getComparisonData: ${error.message}`);
