@@ -23,6 +23,14 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 5. Solo `pruebas` puede contener librerías, configuración y referencias adicionales de testing.
 6. Si las pruebas pasan, se permite hacer push en `pruebas` (evidencia de pruebas) y también en `dev-api-task` (estado de desarrollo).
 
+## Política de scripts temporales (aplica siempre)
+
+- El asistente no debe crear scripts o archivos temporales de forma innecesaria.
+- Si un temporal es estrictamente necesario para depurar o probar, su uso debe ser mínimo y acotado a la tarea.
+- Al terminar la prueba o requerimiento, el temporal debe eliminarse inmediatamente.
+- Antes de cerrar una tarea, validar que no queden temporales en `git status`.
+- No se permite promover scripts temporales a ramas de desarrollo o publicación.
+
 ## Flujo operativo estándar
 
 1. Cambiar a `dev-api-task` y desarrollar.
