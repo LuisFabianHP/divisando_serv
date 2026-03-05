@@ -26,7 +26,7 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 3. Para probar cambios, se debe pasar de `dev-api-task` hacia `pruebas`.
 4. Si una prueba falla, la corrección vuelve a hacerse en `dev-api-task` y se repite el ciclo de pruebas.
 5. Solo `pruebas` puede contener librerías, configuración y referencias adicionales de testing.
-6. Si las pruebas pasan, se permite hacer push en `pruebas` (evidencia de pruebas) y también en `dev-api-task` (estado de desarrollo).
+6. Si las pruebas pasan, se permite hacer push en `pruebas` (evidencia de pruebas). Después, se debe volver a `dev-api-task`, revisar los criterios de la tarea actual en Trello y, si están cubiertos, completar la tarea. Tras eso, se crean los commits finales y se envían los cambios a `dev-api-task` en remoto.
 
 ## Política de scripts temporales (aplica siempre)
 
