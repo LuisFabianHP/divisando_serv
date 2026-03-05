@@ -25,6 +25,13 @@ const getGoogleAudiences = () => {
     return [...new Set([...direct, ...fromList])];
 };
 
+const buildUserPayload = (user) => ({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    provider: user.provider,
+});
+
 /**
  * Registro de nuevos usuarios.
  */
@@ -53,6 +60,8 @@ const register = async (req, res, next) => {
         res.status(200).json({ userId: user.id });
     } catch (error) {
         apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
+        // Solo mostrar mensaje descriptivo en consola
+        console.error('Error al registrar el usuario. Consulta los logs para más detalles.');
         res.status(500).json({ error: 'Error al registrar la cuenta de usuario.' });
     }
 };
@@ -151,7 +160,7 @@ const verificationCode  = async (req, res, next) => {
                 email: user.email
             });
 
-            return res.status(200).json({ success: true, refreshToken, expiresAt });
+            return res.status(200).json({ success: true, refreshToken, expiresAt, user: buildUserPayload(user) });
         }
 
         if (verificationCode.type === 'password_reset') {
@@ -168,6 +177,7 @@ const verificationCode  = async (req, res, next) => {
         res.status(400).json({ success: false, error: 'Tipo de código no reconocido.' });
     } catch (error) {
         apiLogger.error(`Error en verificación de código: ${error.message}`, { stack: error.stack });
+        console.error('Error en verificación de código. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -194,9 +204,10 @@ const login = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
     
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
+        console.error('Error en login. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -265,9 +276,10 @@ const loginWithGoogle = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithGoogle: ${error.message}`, { stack: error.stack });
+        console.error('Error en login con Google. Consulta los logs para más detalles.');
         res.status(401).json({ error: 'Token de Google inválido.' });
     }
 };
@@ -319,9 +331,10 @@ const loginWithApple = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithApple: ${error.message}`, { stack: error.stack });
+        console.error('Error en login con Apple. Consulta los logs para más detalles.');
         res.status(401).json({ error: 'Token de Apple inválido.' });
     }
 };
@@ -354,9 +367,10 @@ const refreshAccessToken = async (req, res, next) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
     
-        res.status(200).json({ refreshToken: user.refreshToken, expiresAt });
+        res.status(200).json({ refreshToken: user.refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
+        console.error('Error en refresh token. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -383,6 +397,7 @@ const logout = async (req, res, next) => {
         res.status(200).json({ message: 'Sesión cerrada correctamente.' });
     } catch (error) {
         apiLogger.error('Error en logout', { message: error.message, stack: error.stack });
+        console.error('Error en logout. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -400,6 +415,7 @@ const generateVerificationCode = async (userId, email) => {
         return;
     } catch(error){
         apiLogger.error(`Error al generar el código de verificación: ${error.message}`, { stack: error.stack });
+        console.error('Error al generar el código de verificación. Consulta los logs para más detalles.');
         throw new Error('Error al intentar generar el código de verificación.');     
     }
 
@@ -428,6 +444,7 @@ const resendVerificationCode = async (req, res, next) => {
         res.status(200).json({ success: true, message: 'Nuevo código de verificación enviado.' });
     } catch (error) {
         apiLogger.error(`Error en reenvío de código: ${error.message}`, { stack: error.stack });
+        console.error('Error en reenvío de código. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -463,6 +480,7 @@ const forgotPassword = async (req, res, next) => {
         res.status(200).json({ success: true, message: 'Código de recuperación enviado.', userId: user.id });
     } catch (error) {
         apiLogger.error(`Error en recuperación de contraseña: ${error.message}`, { stack: error.stack });
+        console.error('Error en recuperación de contraseña. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -517,6 +535,7 @@ const resetPassword = async (req, res, next) => {
         res.status(200).json({ success: true, message: 'Contraseña restablecida correctamente.' });
     } catch (error) {
         apiLogger.error(`Error al restablecer contraseña: ${error.message}`, { stack: error.stack });
+        console.error('Error al restablecer contraseña. Consulta los logs para más detalles.');
         next(error);
     }
 };
@@ -538,6 +557,7 @@ const generateAndStoreVerificationCode = async (userId, type) => {
         return code;
     } catch (error) {
         apiLogger.error(`Error al generar código de verificación (${type}): ${error.message}`, { stack: error.stack });
+        console.error('Error al generar código de verificación. Consulta los logs para más detalles.');
         throw new Error('Error al generar el código de verificación.');
     }
 };

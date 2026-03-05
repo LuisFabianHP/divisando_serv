@@ -4,6 +4,7 @@ const {
 	getComparisonData,
 	getAvailableCurrencies,
 	triggerExchangeRatesRefresh,
+	getRateChangeAlerts,
 } = require('@controllers/exchangeController');
 const validateJWT = require('@middlewares/validateJWT');
 const router = express.Router();
@@ -17,6 +18,9 @@ router.post('/refresh', validateJWT, triggerExchangeRatesRefresh);
 
 // Endpoint para comparar monedas (protegido con JWT)
 router.get('/compare', validateJWT, getComparisonData);
+
+// Endpoint para alertas de cambios de tasa (protegido con JWT)
+router.get('/rate-changes', validateJWT, getRateChangeAlerts);
 
 // Ruta para obtener las tasas de cambio (protegido con JWT)
 router.get('/:currency', validateJWT, getExchangeRates);

@@ -231,8 +231,21 @@ Variables esenciales:
 - `GOOGLE_CLIENT_IDS` - Lista adicional separada por comas de audiencias permitidas
   - Ejemplo: `GOOGLE_CLIENT_IDS=web-id.apps.googleusercontent.com,android-id.apps.googleusercontent.com,ios-id.apps.googleusercontent.com`
   - Recomendación Railway: declarar explícitamente los IDs usados por cada plataforma para evitar `401 Token de Google inválido` por desalineación de audiencia.
+- `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
+- `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
 
-Exchange Rate API:
+#### Mailgun en Railway (nota importante)
+- El servicio de correo usa inicialización dinámica de variables de entorno en tiempo de envío.
+- Esto evita que `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` queden en `undefined` cuando Railway inyecta variables después de cargar módulos.
+- Si faltan variables, el sistema entra en modo demo (logs en consola) sin romper el flujo de registro/reset.
+
+**Checklist rápido en Railway:**
+1. Verifica que existan `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` en Variables.
+2. Confirma redeploy/restart del servicio tras actualizar variables.
+3. Prueba registro o reenvío de código y revisa logs.
+4. Debe aparecer `✅ Mailgun configurado correctamente` y no el warning de variables faltantes.
+
+#### Exchange Rate API (Configuración recomendada)
 - `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
 - `EXCHANGE_RATE_API_URL` - URL base (https://v6.exchangerate-api.com/v6/)
 - `EXCHANGE_RATE_CURRENCIES` - Monedas a actualizar (ej. USD,MXN,EUR,CAD)
@@ -277,7 +290,13 @@ Optimización de memoria y MongoDB:
 - `MONGO_MAX_POOL_SIZE` - Máximo de conexiones simultáneas al pool de MongoDB (default: 10)
 - `MONGO_MIN_POOL_SIZE` - Conexiones mínimas siempre activas en el pool (default: 2)
 - `MONGO_MAX_IDLE_MS` - Tiempo máximo en ms antes de cerrar una conexión inactiva (default: 60000)
-- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 604800, una semana)
+- `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 7776000, tres meses)
+
+### Estrategia de retención e histórico
+- Los registros de ExchangeRate se eliminan automáticamente después de 90 días (TTL).
+- El índice compuesto base_currency + createdAt permite consultas eficientes por moneda y fecha.
+- Puedes ajustar el TTL cambiando la variable de entorno MONGO_TTL_SECONDS.
+- Esta estrategia mantiene la base limpia, optimiza el rendimiento y permite conservar un histórico útil sin exceder límites del plan free.
 - `MEMORY_MONITOR_CRON` - Monitoreo de memoria (default: */5 * * * *)
 - `GC_CRON` - Garbage collection forzado (default: */30 * * * *)
 

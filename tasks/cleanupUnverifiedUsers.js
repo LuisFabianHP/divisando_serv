@@ -63,6 +63,8 @@ const cleanupUnverifiedUsers = async () => {
 
     } catch (error) {
         taskLogger.error(`Error en limpieza de usuarios no verificados: ${error.message}`, { stack: error.stack });
+        console.error('Error en limpieza de usuarios no verificados. Consulta los logs para más detalles.');
+        // No mostrar stack en consola, solo en logs
         taskErrorHandler(error, 'cleanupUnverifiedUsers');
     }
 };

@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema(
         } 
     },
     {
-        collection: 'User', // Nombre de la colección en MongoDB
+        collection: 'user', // Nombre de la colección en MongoDB
         timestamps: true, // Añade createdAt y updatedAt
     }
 );
