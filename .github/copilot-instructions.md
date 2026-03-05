@@ -8,6 +8,11 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 - Usar siempre esta ruta como base para comandos, scripts y navegación.
 - No asumir rutas alternativas ni derivarlas por nombre similar.
 
+## Contexto obligatorio al iniciar
+
+- Al iniciar la lectura de estas instrucciones, también se debe hacer una lectura rápida del README del proyecto para tomar contexto funcional.
+- Lectura rápida requerida: `D:\Proyectos\DivisandoApp\divisando_serv\README.md`
+
 ## Modelo de ramas
 
 - `dev-api-task`: rama principal de desarrollo.
