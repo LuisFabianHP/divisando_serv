@@ -2,6 +2,12 @@
 
 Estas reglas son obligatorias para cualquier cambio en este repositorio.
 
+## Rutas oficiales del proyecto
+
+- Ruta absoluta de este repo: `D:\Proyectos\DivisandoApp\divisando_serv`
+- Usar siempre esta ruta como base para comandos, scripts y navegación.
+- No asumir rutas alternativas ni derivarlas por nombre similar.
+
 ## Modelo de ramas
 
 - `dev-api-task`: rama principal de desarrollo.
