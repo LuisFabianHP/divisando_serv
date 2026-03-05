@@ -1,5 +1,6 @@
 const ExchangeRate = require('@models/ExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
+const RateChangeAlert = require('@models/RateChangeAlert');
 const { apiLogger } = require('@utils/logger');
 const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 
@@ -167,9 +168,57 @@ const triggerExchangeRatesRefresh = async (req, res, next) => {
   }
 };
 
+/**
+ * Obtiene alertas recientes de cambio para un par base/target.
+ */
+const getRateChangeAlerts = async (req, res, next) => {
+  try {
+    const { base, target } = validateCurrencies(req.query.baseCurrency, req.query.targetCurrency);
+    const minChangePercent = Number(req.query.minChangePercent || '0');
+    const limit = Math.min(Math.max(Number(req.query.limit || '20'), 1), 100);
+
+    const query = {
+      baseCurrency: base,
+      targetCurrency: target,
+    };
+
+    if (Number.isFinite(minChangePercent) && minChangePercent > 0) {
+      query.changePercent = {
+        $gte: -Math.abs(minChangePercent),
+        $lte: Math.abs(minChangePercent),
+      };
+      delete query.changePercent;
+      query.$expr = {
+        $gte: [{ $abs: '$changePercent' }, Math.abs(minChangePercent)],
+      };
+    }
+
+    const alerts = await RateChangeAlert.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
+
+    const latest = alerts[0] || null;
+
+    return res.status(200).json({
+      success: true,
+      baseCurrency: base,
+      targetCurrency: target,
+      alert: Boolean(latest),
+      latest,
+      count: alerts.length,
+      alerts,
+    });
+  } catch (error) {
+    apiLogger.error(`Error en getRateChangeAlerts: ${error.message}`);
+    next(error);
+  }
+};
+
 module.exports = {
   getExchangeRates,
   getComparisonData,
   getAvailableCurrencies,
   triggerExchangeRatesRefresh,
+  getRateChangeAlerts,
 };
