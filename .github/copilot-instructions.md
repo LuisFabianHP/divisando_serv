@@ -29,7 +29,10 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 6. Si se confirma ejecutar pruebas, se debe pasar de `dev-api-task` hacia `pruebas`.
 7. Si una prueba falla, la corrección vuelve a hacerse en `dev-api-task` y se repite el ciclo de pruebas.
 8. Solo `pruebas` puede contener librerías, configuración y referencias adicionales de testing.
-9. Si las pruebas pasan, se permite hacer push en `pruebas` (evidencia de pruebas). Después, se debe volver a `dev-api-task`, revisar los criterios de la tarea actual en Trello y, si están cubiertos, completar la tarea. Tras eso, se crean los commits finales y se envían los cambios a `dev-api-task` en remoto.
+9. `dev-api-task` no debe contener carpeta `tests/`, scripts `test`, configuración de Jest ni aliases/referencias a testing.
+10. Excepción permitida y obligatoria: si la corrección necesaria está dentro de `tests/` o implica instalar/ajustar librerías/configuración de testing, ese ajuste se realiza directamente en `pruebas`.
+11. Los cambios de `tests/` y librerías/configuración de testing hechos en `pruebas` no se promueven hacia `dev-api-task`.
+12. Si las pruebas pasan, se permite hacer push en `pruebas` (evidencia de pruebas). Después, se debe volver a `dev-api-task`, revisar los criterios de la tarea actual en Trello y, si están cubiertos, completar la tarea. Tras eso, se crean los commits finales y se envían los cambios a `dev-api-task` en remoto.
 
 ## Política de scripts temporales (aplica siempre)
 
@@ -49,8 +52,9 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 6. Si el usuario confirma `sí`: cambiar a `pruebas`.
 7. Traer cambios desde `dev-api-task` a `pruebas`.
 8. Ejecutar pruebas en `pruebas`.
-9. Si falla: volver a `dev-api-task`, corregir y regresar a `pruebas` para reintentar.
-10. Si pasa: push de resultados en `pruebas` y mantener `dev-api-task` actualizado.
+9. Si falla por lógica funcional (no tests): volver a `dev-api-task`, corregir y regresar a `pruebas` para reintentar.
+10. Si falla por scripts de `tests/` o librerías/configuración de testing: corregir directamente en `pruebas` y reintentar en `pruebas`.
+11. Si pasa: push de resultados en `pruebas` y mantener `dev-api-task` actualizado solo con cambios funcionales.
 
 ## Restricciones de promoción
 
