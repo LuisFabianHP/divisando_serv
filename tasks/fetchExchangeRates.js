@@ -17,7 +17,7 @@ const RATE_LIMIT_ERROR = 429;
 const CRON_SCHEDULE = process.env.EXCHANGE_RATE_CRON || '0 * * * *';
 
 // Monedas por defecto y configuración de entrada
-const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR'];
+const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
 
 // Ventanas y umbrales
 const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
