@@ -80,5 +80,12 @@ describe('Pruebas de la API', () => {
     expect(response.body).toHaveProperty('baseCurrency', 'USD');
     expect(response.body).toHaveProperty('targetCurrency', 'MXN');
   });
+
+  afterAll(() => {
+    const rateLimiter = require('../../middlewares/rateLimiter');
+    if (rateLimiter?.store?.shutdown) {
+      rateLimiter.store.shutdown();
+    }
+  });
 });
 
