@@ -4,6 +4,23 @@ const RateChangeAlert = require('@models/RateChangeAlert');
 const { apiLogger } = require('@utils/logger');
 const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 
+const EMPTY_COLLECTION_USER_MESSAGE =
+  'No hay tasas de cambio disponibles en este momento. Se inicio una sincronizacion automatica; intenta nuevamente en unos minutos.';
+
+const ensureExchangeRatesAvailable = async () => {
+  const hasAnyRate = await ExchangeRate.exists({});
+  if (hasAnyRate) {
+    return true;
+  }
+
+  apiLogger.error('Coleccion exchangeRates vacia. Se disparara actualizacion automatica de tasas.');
+  updateExchangeRates().catch((error) => {
+    apiLogger.error(`Error al actualizar exchangeRates desde fallback automatico: ${error.message}`);
+  });
+
+  return false;
+};
+
 /**
  * Función auxiliar para validar parámetros de consulta
  */
@@ -21,6 +38,14 @@ const validateCurrencies = (baseCurrency, targetCurrency) => {
  */
 const getExchangeRates = async (req, res, next) => {
   try {
+    const hasRates = await ensureExchangeRatesAvailable();
+    if (!hasRates) {
+      const error = new Error('exchangeRates vacia al consultar getExchangeRates.');
+      error.status = 503;
+      error.userMessage = EMPTY_COLLECTION_USER_MESSAGE;
+      throw error;
+    }
+
     const { currency } = req.params;
 
     // Validar que la moneda esté presente
@@ -37,6 +62,7 @@ const getExchangeRates = async (req, res, next) => {
     if (!exchangeRate) {
       const error = new Error(`No se encontraron tasas de cambio para ${baseCurrency}.`);
       error.status = 404;
+      error.userMessage = `No hay datos para la moneda base: ${baseCurrency}.`;
       throw error;
     }
 
@@ -57,6 +83,14 @@ const getExchangeRates = async (req, res, next) => {
  */
 const getComparisonData = async (req, res, next) => {
   try {
+    const hasRates = await ensureExchangeRatesAvailable();
+    if (!hasRates) {
+      const error = new Error('exchangeRates vacia al consultar getComparisonData.');
+      error.status = 503;
+      error.userMessage = EMPTY_COLLECTION_USER_MESSAGE;
+      throw error;
+    }
+
     const { base, target } = validateCurrencies(req.query.baseCurrency, req.query.targetCurrency);
     const knownUpdatedAt = req.query.knownUpdatedAt;
     const knownCurrentRate = Number(req.query.knownCurrentRate);
@@ -68,6 +102,7 @@ const getComparisonData = async (req, res, next) => {
     if (!baseData) {
       const error = new Error(`No se encontraron datos para la moneda base: ${base}`);
       error.status = 404;
+      error.userMessage = `No hay datos de tasa para la moneda base ${base}.`;
       throw error;
     }
 
@@ -76,6 +111,7 @@ const getComparisonData = async (req, res, next) => {
     if (!currentRateEntry) {
       const error = new Error(`No se encontraron datos para la moneda destino: ${target}`);
       error.status = 404;
+      error.userMessage = `No hay datos de tasa para la moneda destino ${target}.`;
       throw error;
     }
 
@@ -131,10 +167,19 @@ const getComparisonData = async (req, res, next) => {
  */
 const getAvailableCurrencies = async (req, res, next) => {
   try {
+    const hasRates = await ensureExchangeRatesAvailable();
+    if (!hasRates) {
+      const error = new Error('exchangeRates vacia al consultar getAvailableCurrencies.');
+      error.status = 503;
+      error.userMessage = EMPTY_COLLECTION_USER_MESSAGE;
+      throw error;
+    }
+
     const result = await AvailableCurrencies.findOne({});
     if (!result) {
       const error = new Error('No hay monedas disponibles en este momento.');
       error.status = 404;
+      error.userMessage = 'No hay monedas disponibles temporalmente. Se esta recargando la lista.';
       throw error;
     }
 
