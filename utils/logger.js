@@ -43,7 +43,9 @@ const consoleLogFormat = printf(({ level, message, timestamp }) => {
 // Crear transports de forma segura
 const createTransports = () => {
   const transportsList = [];
-  const consoleLevel = process.env.CONSOLE_LOG_LEVEL || 'info';
+  const consoleLevel = (
+    process.env.CONSOLE_LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'error' : 'info')
+  ).toLowerCase();
   
   try {
     transportsList.push(
