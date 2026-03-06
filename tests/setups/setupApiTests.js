@@ -2,6 +2,8 @@
 const mongoose = require('mongoose');
 const ExchangeRate = require('../../models/ExchangeRate');
 const AvailableCurrencies = require('../../models/AvailableCurrencies');
+const User = require('../../models/User');
+const VerificationCode = require('../../models/VerificationCode');
 
 // Defaults for tests that load app.js
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
@@ -44,12 +46,13 @@ beforeEach(async () => {
 
 // Limpiar colecciones después de cada prueba
 afterEach(async () => {
-  const collections = mongoose.connection.collections;
-
-  for (const key in collections) {
-    const collection = collections[key];
-    await collection.deleteMany(); // Borra todos los documentos de la colecci├│n
-  }
+  // Limpiar solo las colecciones usadas por las pruebas para evitar errores de permisos
+  await Promise.all([
+    ExchangeRate.deleteMany({}),
+    AvailableCurrencies.deleteMany({}),
+    User.deleteMany({ email: /@test\.com$/ }),
+    VerificationCode.deleteMany({})
+  ]);
 });
 
 // Cerrar la conexión después de todas las pruebas

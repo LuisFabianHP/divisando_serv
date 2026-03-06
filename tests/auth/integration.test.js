@@ -17,9 +17,23 @@ const { connectDB, closeDB } = require('@config/database');
 const User = require('@models/User');
 const VerificationCode = require('@models/VerificationCode');
 
+const runId = Date.now();
+const accountUser = {
+  username: `newuser_${runId}`,
+  email: `newuser_${runId}@test.com`,
+  password: 'SecureP@ss1',
+};
+const resetUser = {
+  username: `resetuser_${runId}`,
+  email: `reset_${runId}@test.com`,
+  password: 'oldpass',
+};
+
 describe('Auth integration (account verification, password reset, login)', () => {
   beforeAll(async () => {
     await connectDB();
+    await User.deleteMany({ email: { $in: [accountUser.email, resetUser.email] } });
+    await VerificationCode.deleteMany({ email: { $in: [accountUser.email, resetUser.email] } });
   });
 
   afterAll(async () => {
@@ -32,7 +46,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
         .post('/auth/register')
         .set('x-api-key', process.env.API_KEY)
         .set('User-Agent', 'DivisandoApp/1.0')
-        .send({ username: 'newuser', email: 'newuser@test.com', password: 'SecureP@ss1' });
+        .send(accountUser);
 
       expect(res.statusCode).toBe(200);
       expect(res.body.userId).toBeDefined();
@@ -46,7 +60,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
     });
 
     test('verification for account_verification returns refreshToken and marks user verified', async () => {
-      const user = await User.findOne({ email: 'newuser@test.com' });
+      const user = await User.findOne({ email: accountUser.email });
       const codeDoc = await VerificationCode.findOne({ userId: user._id, type: 'account_verification' });
       expect(codeDoc).toBeTruthy();
 
@@ -74,14 +88,14 @@ describe('Auth integration (account verification, password reset, login)', () =>
   describe('Login Flow', () => {
     test('login with correct credentials returns refreshToken', async () => {
       // Use verified user from previous test
-      const user = await User.findOne({ email: 'newuser@test.com' });
+      const user = await User.findOne({ email: accountUser.email });
       expect(user.isVerified).toBe(true);
 
       const res = await request(app)
         .post('/auth/login')
         .set('x-api-key', process.env.API_KEY)
         .set('User-Agent', 'DivisandoApp/1.0')
-        .send({ email: 'newuser@test.com', password: 'SecureP@ss1' });
+        .send({ email: accountUser.email, password: accountUser.password });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.refreshToken).toBeDefined();
@@ -96,7 +110,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
         .post('/auth/login')
         .set('x-api-key', process.env.API_KEY)
         .set('User-Agent', 'DivisandoApp/1.0')
-        .send({ email: 'newuser@test.com', password: 'WrongPassword123' });
+        .send({ email: accountUser.email, password: 'WrongPassword123' });
 
       expect(res.statusCode).toBe(401);
       expect(res.body.error).toBeDefined();
@@ -116,7 +130,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
 
   describe('Password Reset Flow', () => {
     test('forgot password -> generates code and returns userId', async () => {
-      const user = await User.create({ username: 'resetuser', email: 'reset@test.com', password: 'oldpass' });
+      const user = await User.create(resetUser);
 
       const res = await request(app)
         .post('/auth/password/forgot')
@@ -133,7 +147,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
     });
 
     test('verification for password_reset returns success and keeps code for reset', async () => {
-      const user = await User.findOne({ email: 'reset@test.com' });
+      const user = await User.findOne({ email: resetUser.email });
       const codeDoc = await VerificationCode.findOne({ userId: user._id, type: 'password_reset' });
       expect(codeDoc).toBeTruthy();
 
@@ -153,7 +167,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
     });
 
     test('reset password consumes code and updates password', async () => {
-      const user = await User.findOne({ email: 'reset@test.com' });
+      const user = await User.findOne({ email: resetUser.email });
       const codeDoc = await VerificationCode.findOne({ userId: user._id, type: 'password_reset' });
 
       const res = await request(app)
@@ -172,5 +186,12 @@ describe('Auth integration (account verification, password reset, login)', () =>
       const updatedUser = await User.findById(user._id);
       expect(updatedUser.matchPassword('newStrongP@ss1')).toBe(true);
     });
+  });
+
+  afterAll(() => {
+    const rateLimiter = require('../../middlewares/rateLimiter');
+    if (rateLimiter?.store?.shutdown) {
+      rateLimiter.store.shutdown();
+    }
   });
 });
