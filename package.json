@@ -4,6 +4,7 @@
   "description": "Aplicaciones de servidor en Node.js: exclusivamente en el servidor.",
   "main": "server.js",
   "scripts": {
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
     "start": "node --expose-gc --max-old-space-size=384 server.js",
     "dev": "set NODE_ENV=development && nodemon server.js"
   },
@@ -27,6 +28,10 @@
     "node-cron": "^3.0.3",
     "winston": "^3.17.0"
   },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
   "_moduleAliases": {
     "@config": "./config",
     "@controllers": "./controllers",
@@ -35,6 +40,21 @@
     "@routes": "./routes",
     "@utils": "./utils",
     "@tasks": "./tasks",
-    "@services": "./services"
+    "@services": "./services",
+    "@tests": "./tests"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^@config/(.*)$": "<rootDir>/config/$1",
+      "^@controllers/(.*)$": "<rootDir>/controllers/$1",
+      "^@middlewares/(.*)$": "<rootDir>/middlewares/$1",
+      "^@models/(.*)$": "<rootDir>/models/$1",
+      "^@routes/(.*)$": "<rootDir>/routes/$1",
+      "^@utils/(.*)$": "<rootDir>/utils/$1",
+      "^@tasks/(.*)$": "<rootDir>/tasks/$1",
+      "^@services/(.*)$": "<rootDir>/services/$1",
+      "^@tests/(.*)$": "<rootDir>/tests/$1"
+    }
   }
 }
