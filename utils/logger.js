@@ -43,6 +43,7 @@ const consoleLogFormat = printf(({ level, message, timestamp }) => {
 // Crear transports de forma segura
 const createTransports = () => {
   const transportsList = [];
+  const consoleLevel = process.env.CONSOLE_LOG_LEVEL || 'info';
   
   try {
     transportsList.push(
@@ -67,11 +68,11 @@ const createTransports = () => {
     console.error('❌ Error al crear transports de archivos:', err.message);
   }
   
-  // Siempre agregar console logging en producción para debug
+  // Consola siempre en formato breve; detalle tecnico queda en archivos.
   transportsList.push(
     new transports.Console({
       format: combine(timestamp(), consoleLogFormat),
-      level: process.env.NODE_ENV === 'production' ? 'warn' : 'info',
+      level: consoleLevel,
     })
   );
   
