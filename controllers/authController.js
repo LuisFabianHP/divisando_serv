@@ -25,6 +25,13 @@ const getGoogleAudiences = () => {
     return [...new Set([...direct, ...fromList])];
 };
 
+const buildUserPayload = (user) => ({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    provider: user.provider,
+});
+
 /**
  * Registro de nuevos usuarios.
  */
@@ -153,7 +160,7 @@ const verificationCode  = async (req, res, next) => {
                 email: user.email
             });
 
-            return res.status(200).json({ success: true, refreshToken, expiresAt });
+            return res.status(200).json({ success: true, refreshToken, expiresAt, user: buildUserPayload(user) });
         }
 
         if (verificationCode.type === 'password_reset') {
@@ -197,7 +204,7 @@ const login = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
     
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         console.error('Error en login. Consulta los logs para más detalles.');
@@ -269,7 +276,7 @@ const loginWithGoogle = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithGoogle: ${error.message}`, { stack: error.stack });
         console.error('Error en login con Google. Consulta los logs para más detalles.');
@@ -324,7 +331,7 @@ const loginWithApple = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt });
+        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithApple: ${error.message}`, { stack: error.stack });
         console.error('Error en login con Apple. Consulta los logs para más detalles.');
@@ -360,7 +367,7 @@ const refreshAccessToken = async (req, res, next) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
     
-        res.status(200).json({ refreshToken: user.refreshToken, expiresAt });
+        res.status(200).json({ refreshToken: user.refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         console.error('Error en refresh token. Consulta los logs para más detalles.');
