@@ -7,6 +7,9 @@
     "start": "node --expose-gc --max-old-space-size=384 server.js",
     "dev": "set NODE_ENV=development && nodemon server.js"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
