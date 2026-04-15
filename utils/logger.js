@@ -26,23 +26,33 @@ function formatDate(dateString) {
   return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
 }
 
-// Formato personalizado para los logs
-const logFormat = printf(({ level, message, timestamp, ...meta }) => {
+// Formato detallado para archivos (incluye metadata tecnica)
+const detailedLogFormat = printf(({ level, message, timestamp, ...meta }) => {
   const friendlyTime = formatDate(timestamp);
   return `${friendlyTime} [${level.toUpperCase()}]: ${message} ${
     Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
   }`;
 });
 
+// Formato limpio para consola (sin payload tecnico extenso)
+const consoleLogFormat = printf(({ level, message, timestamp }) => {
+  const friendlyTime = formatDate(timestamp);
+  return `${friendlyTime} [${level.toUpperCase()}]: ${message}`;
+});
+
 // Crear transports de forma segura
 const createTransports = () => {
   const transportsList = [];
+  const consoleLevel = (
+    process.env.CONSOLE_LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'error' : 'info')
+  ).toLowerCase();
   
   try {
     transportsList.push(
       new transports.File({ 
         filename: path.join(logDir, 'api.log'), 
         level: 'info',
+        format: combine(timestamp(), detailedLogFormat),
         maxsize: 5242880, // 5MB
         maxFiles: 5,
       })
@@ -51,6 +61,7 @@ const createTransports = () => {
       new transports.File({ 
         filename: path.join(logDir, 'api-errors.log'), 
         level: 'error',
+        format: combine(timestamp(), detailedLogFormat),
         maxsize: 5242880,
         maxFiles: 5,
       })
@@ -59,11 +70,11 @@ const createTransports = () => {
     console.error('❌ Error al crear transports de archivos:', err.message);
   }
   
-  // Siempre agregar console logging en producción para debug
+  // Consola siempre en formato breve; detalle tecnico queda en archivos.
   transportsList.push(
     new transports.Console({
-      format: combine(timestamp(), logFormat),
-      level: process.env.NODE_ENV === 'production' ? 'error' : 'info',
+      format: combine(timestamp(), consoleLogFormat),
+      level: consoleLevel,
     })
   );
   
@@ -73,20 +84,20 @@ const createTransports = () => {
 // Logger para la API
 const apiLogger = createLogger({
   level: 'info',
-  format: combine(timestamp(), logFormat),
+  format: combine(timestamp(), detailedLogFormat),
   transports: createTransports(),
   exceptionHandlers: [
-    new transports.Console({ format: combine(timestamp(), logFormat) }),
+    new transports.Console({ format: combine(timestamp(), consoleLogFormat) }),
   ],
 });
 
 // Logger para las tareas
 const taskLogger = createLogger({
   level: 'info',
-  format: combine(timestamp(), logFormat),
+  format: combine(timestamp(), detailedLogFormat),
   transports: createTransports(),
   exceptionHandlers: [
-    new transports.Console({ format: combine(timestamp(), logFormat) }),
+    new transports.Console({ format: combine(timestamp(), consoleLogFormat) }),
   ],
 });
 

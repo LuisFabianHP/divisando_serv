@@ -7,16 +7,41 @@ const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 const EMPTY_COLLECTION_USER_MESSAGE =
   'No hay tasas de cambio disponibles en este momento. Se inicio una sincronizacion automatica; intenta nuevamente en unos minutos.';
 
+let exchangeRatesWasEmpty = false;
+let exchangeRatesRecoveryInProgress = false;
+
 const ensureExchangeRatesAvailable = async () => {
   const hasAnyRate = await ExchangeRate.exists({});
   if (hasAnyRate) {
+    if (exchangeRatesWasEmpty) {
+      exchangeRatesWasEmpty = false;
+      apiLogger.warn('exchangeRates restablecida correctamente. El servicio de tasas vuelve a estar disponible.');
+    }
     return true;
   }
 
-  apiLogger.error('Coleccion exchangeRates vacia. Se disparara actualizacion automatica de tasas.');
-  updateExchangeRates().catch((error) => {
-    apiLogger.error(`Error al actualizar exchangeRates desde fallback automatico: ${error.message}`);
-  });
+  exchangeRatesWasEmpty = true;
+  if (!exchangeRatesRecoveryInProgress) {
+    exchangeRatesRecoveryInProgress = true;
+    apiLogger.error('Coleccion exchangeRates vacia. Se disparara actualizacion automatica de tasas.');
+
+    updateExchangeRates()
+      .then(async () => {
+        const recovered = await ExchangeRate.exists({});
+        if (recovered) {
+          exchangeRatesWasEmpty = false;
+          apiLogger.warn('exchangeRates restablecida correctamente despues de la sincronizacion automatica.');
+        } else {
+          apiLogger.warn('Sincronizacion automatica completada, pero exchangeRates sigue vacia.');
+        }
+      })
+      .catch((error) => {
+        apiLogger.error(`Error al actualizar exchangeRates desde fallback automatico: ${error.message}`);
+      })
+      .finally(() => {
+        exchangeRatesRecoveryInProgress = false;
+      });
+  }
 
   return false;
 };
