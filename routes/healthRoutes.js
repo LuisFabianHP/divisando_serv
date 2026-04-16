@@ -5,8 +5,24 @@ const { getConnectionStatus } = require('@config/database');
 
 // Endpoint para verificar el estado de la API
 // Health checks should be public to support uptime monitoring.
-router.get('/health', (req, res) => {
-    res.status(200).json({ status: "ok", message: "API en funcionamiento" });
+router.get('/health', async (req, res) => {
+    try {
+        const dbStatus = await getConnectionStatus();
+        const isHealthy = dbStatus.readyState === 1 && !dbStatus.circuitBreakerOpen;
+        const statusCode = isHealthy ? 200 : 503;
+
+        res.status(statusCode).json({
+            status: isHealthy ? 'ok' : 'degraded',
+            message: isHealthy
+                ? 'API en funcionamiento'
+                : 'Servicio temporalmente no disponible. Intenta nuevamente más tarde.',
+        });
+    } catch (error) {
+        res.status(503).json({
+            status: 'error',
+            message: 'Servicio temporalmente no disponible. Intenta nuevamente más tarde.',
+        });
+    }
 });
 
 // Endpoint para verificar el estado de MongoDB
@@ -31,8 +47,7 @@ router.get('/health/database', validateApiKey, async (req, res) => {
     } catch (error) {
         res.status(503).json({
             status: "error",
-            message: "Error al verificar estado de MongoDB",
-            error: error.message,
+            message: "Servicio temporalmente no disponible. Intenta nuevamente más tarde.",
             timestamp: new Date().toISOString()
         });
     }
