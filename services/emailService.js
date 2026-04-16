@@ -92,7 +92,14 @@ const sendVerificationEmail = async (email, code) => {
         console.log(`📧 Código de verificación enviado a ${email}`);
     } catch (error) {
         console.error(`❌ Error al enviar correo: ${error.message}`);
-        throw new Error('Error al enviar el correo de verificación.');
+        const mailError = new Error('Error al enviar el correo de verificación.');
+        mailError.name = 'MailDeliveryError';
+        mailError.status = 503;
+        mailError.statusCode = 503;
+        mailError.userMessage = 'No se pudo enviar el correo de verificación. Intenta nuevamente más tarde.';
+        mailError.providerStatus = error?.status || error?.statusCode || null;
+        mailError.providerMessage = error?.details || error?.message || 'Unknown provider error';
+        throw mailError;
     }
 };
 
