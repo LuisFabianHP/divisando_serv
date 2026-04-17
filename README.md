@@ -233,6 +233,9 @@ Variables esenciales:
   - Recomendación Railway: declarar explícitamente los IDs usados por cada plataforma para evitar `401 Token de Google inválido` por desalineación de audiencia.
 - `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
 - `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
+- `MAIL_FROM_EMAIL` - Remitente para correos (recomendado en sandbox: `postmaster@<MAILGUN_DOMAIN>`)
+- `MAILGUN_REGION` - Región de Mailgun (`us` o `eu`); para `eu` se usa `https://api.eu.mailgun.net`
+- `MAILGUN_BASE_URL` - URL base opcional de Mailgun para override explícito
 
 #### Mailgun en Railway (nota importante)
 - El servicio de correo usa inicialización dinámica de variables de entorno en tiempo de envío.
@@ -241,9 +244,11 @@ Variables esenciales:
 
 **Checklist rápido en Railway:**
 1. Verifica que existan `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` en Variables.
-2. Confirma redeploy/restart del servicio tras actualizar variables.
-3. Prueba registro o reenvío de código y revisa logs.
-4. Debe aparecer `✅ Mailgun configurado correctamente` y no el warning de variables faltantes.
+2. Si usas dominio sandbox, configura `MAIL_FROM_EMAIL=postmaster@<MAILGUN_DOMAIN>` y autoriza el correo destino en Mailgun.
+3. Si tu cuenta es de región EU, define `MAILGUN_REGION=eu` (o `MAILGUN_BASE_URL=https://api.eu.mailgun.net`).
+4. Confirma redeploy/restart del servicio tras actualizar variables.
+5. Prueba registro o reenvío de código y revisa logs.
+6. Debe aparecer `✅ Mailgun configurado correctamente` y no el warning de variables faltantes.
 
 #### Exchange Rate API (Configuración recomendada)
 - `EXCHANGE_RATE_API_KEY` - API key de exchangerate-api.com
