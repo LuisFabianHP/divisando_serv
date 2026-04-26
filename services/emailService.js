@@ -10,6 +10,22 @@ let client = null;
 let lastConfigKey = null;
 let warnedMissingConfig = false;
 
+const isSandboxDomain = (domain) => /^sandbox[\w-]*\./i.test(domain);
+
+const resolveFromAddress = (domain) => {
+    const explicitFrom = getEnvValue('MAIL_FROM_EMAIL');
+    if (explicitFrom) {
+        return explicitFrom;
+    }
+
+    // Mailgun sandbox domains usually require postmaster@<domain> as sender.
+    if (isSandboxDomain(domain)) {
+        return `postmaster@${domain}`;
+    }
+
+    return `noreply@${domain}`;
+};
+
 const getEnvValue = (name) => {
     const raw = process.env[name];
     if (typeof raw !== 'string') {
@@ -22,12 +38,16 @@ const getEnvValue = (name) => {
 const resolveMailgunConfig = () => {
     const apiKey = getEnvValue('MAILGUN_API_KEY') || getEnvValue('MAILGUN_KEY');
     const domain = getEnvValue('MAILGUN_DOMAIN');
-    return { apiKey, domain };
+    const configuredBaseUrl = getEnvValue('MAILGUN_BASE_URL') || getEnvValue('MAILGUN_API_BASE_URL');
+    const region = getEnvValue('MAILGUN_REGION').toLowerCase();
+    const baseUrl = configuredBaseUrl || (region === 'eu' ? 'https://api.eu.mailgun.net' : '');
+
+    return { apiKey, domain, baseUrl };
 };
 
 const ensureMailgunClient = () => {
-    const { apiKey, domain } = resolveMailgunConfig();
-    const configKey = `${apiKey}::${domain}`;
+    const { apiKey, domain, baseUrl } = resolveMailgunConfig();
+    const configKey = `${apiKey}::${domain}::${baseUrl}`;
 
     if (!apiKey || !domain) {
         mailgunConfigured = false;
@@ -43,19 +63,25 @@ const ensureMailgunClient = () => {
     }
 
     if (client && mailgunConfigured && lastConfigKey === configKey) {
-        return { configured: true, domain };
+        return { configured: true, domain, fromAddress: resolveFromAddress(domain) };
     }
 
     try {
-        client = mg.client({
+        const clientConfig = {
             username: 'api',
             key: apiKey
-        });
+        };
+
+        if (baseUrl) {
+            clientConfig.url = baseUrl;
+        }
+
+        client = mg.client(clientConfig);
         mailgunConfigured = true;
         lastConfigKey = configKey;
         warnedMissingConfig = false;
-        console.log('✅ Mailgun configurado correctamente');
-        return { configured: true, domain };
+        console.log(`✅ Mailgun configurado correctamente (${domain}${baseUrl ? ` | ${baseUrl}` : ''})`);
+        return { configured: true, domain, fromAddress: resolveFromAddress(domain) };
     } catch (err) {
         mailgunConfigured = false;
         client = null;
@@ -81,7 +107,7 @@ const sendVerificationEmail = async (email, code) => {
         }
 
         const mailOptions = {
-            from: `"Divisando" <noreply@${mailgunState.domain}>`,
+            from: `"Divisando" <${mailgunState.fromAddress}>`,
             to: email,
             subject: 'Código de Verificación',
             text: `Tu código de verificación es: ${code}. Expira en 5 minutos.`,
@@ -91,14 +117,26 @@ const sendVerificationEmail = async (email, code) => {
         await client.messages.create(mailgunState.domain, mailOptions);
         console.log(`📧 Código de verificación enviado a ${email}`);
     } catch (error) {
-        console.error(`❌ Error al enviar correo: ${error.message}`);
+        const providerStatus = error?.status || error?.statusCode || null;
+        const providerMessage = error?.details || error?.message || 'Unknown provider error';
+
+        console.error(`❌ Error al enviar correo: ${providerMessage}`);
+        if (providerStatus === 401 || providerStatus === 403) {
+            const { domain } = resolveMailgunConfig();
+            const sandboxHint = isSandboxDomain(domain)
+                ? 'Revisa que el destinatario esté autorizado en Mailgun Sandbox y/o configura MAIL_FROM_EMAIL.'
+                : 'Revisa MAILGUN_API_KEY, MAILGUN_DOMAIN y MAILGUN_REGION/MAILGUN_BASE_URL.';
+
+            console.error(`⚠️  Mailgun rechazó la solicitud (${providerStatus}). ${sandboxHint}`);
+        }
+
         const mailError = new Error('Error al enviar el correo de verificación.');
         mailError.name = 'MailDeliveryError';
         mailError.status = 503;
         mailError.statusCode = 503;
         mailError.userMessage = 'No se pudo enviar el correo de verificación. Intenta nuevamente más tarde.';
-        mailError.providerStatus = error?.status || error?.statusCode || null;
-        mailError.providerMessage = error?.details || error?.message || 'Unknown provider error';
+        mailError.providerStatus = providerStatus;
+        mailError.providerMessage = providerMessage;
         throw mailError;
     }
 };
@@ -119,7 +157,7 @@ const sendPasswordChangedEmail = async (email, username) => {
         }
 
         const mailOptions = {
-            from: `"Divisando" <noreply@${mailgunState.domain}>`,
+            from: `"Divisando" <${mailgunState.fromAddress}>`,
             to: email,
             subject: '🔐 Contraseña Restablecida Exitosamente',
             text: `Hola ${username},\n\nTu contraseña ha sido restablecida exitosamente.\n\nSi no realizaste este cambio, contacta inmediatamente a soporte.\n\nSaludos,\nEquipo Divisando`,

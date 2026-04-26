@@ -6,13 +6,45 @@ const { updateExchangeRates } = require('@tasks/fetchExchangeRates');
 
 const EMPTY_COLLECTION_USER_MESSAGE =
   'No hay tasas de cambio disponibles en este momento. Se inicio una sincronizacion automatica; intenta nuevamente en unos minutos.';
+const STALE_MINUTES_THRESHOLD = Number(process.env.EXCHANGE_RATE_STALE_MINUTES || '180');
 
 let exchangeRatesWasEmpty = false;
 let exchangeRatesRecoveryInProgress = false;
+let exchangeRatesStaleRefreshInProgress = false;
+
+const triggerStaleRefreshIfNeeded = async () => {
+  const latestRate = await ExchangeRate.findOne({}).sort({ updatedAt: -1 }).select('updatedAt').lean();
+  if (!latestRate?.updatedAt) {
+    return;
+  }
+
+  const ageMs = Date.now() - new Date(latestRate.updatedAt).getTime();
+  const staleMs = STALE_MINUTES_THRESHOLD * 60 * 1000;
+  const isStale = Number.isFinite(staleMs) && staleMs > 0 && ageMs > staleMs;
+
+  if (!isStale || exchangeRatesStaleRefreshInProgress) {
+    return;
+  }
+
+  exchangeRatesStaleRefreshInProgress = true;
+  apiLogger.warn(
+    `Ultima actualizacion de tasas con antiguedad de ${Math.round(ageMs / 60000)} min. Se ejecutara sincronizacion automatica.`
+  );
+
+  updateExchangeRates()
+    .catch((error) => {
+      apiLogger.error(`Error al actualizar exchangeRates por stale fallback: ${error.message}`);
+    })
+    .finally(() => {
+      exchangeRatesStaleRefreshInProgress = false;
+    });
+};
 
 const ensureExchangeRatesAvailable = async () => {
   const hasAnyRate = await ExchangeRate.exists({});
   if (hasAnyRate) {
+    await triggerStaleRefreshIfNeeded();
+
     if (exchangeRatesWasEmpty) {
       exchangeRatesWasEmpty = false;
       apiLogger.warn('exchangeRates restablecida correctamente. El servicio de tasas vuelve a estar disponible.');
