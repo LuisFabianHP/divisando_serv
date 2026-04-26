@@ -188,18 +188,27 @@ const getComparisonData = async (req, res, next) => {
       }
     }
 
-    // Buscar el valor anterior más antiguo que sea diferente al actual
+    // Buscar el último valor anterior registrado para el mismo par.
+    // No filtramos por diferencia para poder mostrar comparación incluso si no hubo cambio.
     const previousRateDoc = await ExchangeRate.findOne({
       base_currency: base,
       updatedAt: { $lt: baseData.updatedAt },
       "rates.currency": target,
-      "rates.value": { $ne: currentRate }
     }).sort({ updatedAt: -1 }).exec();
 
     const previousRate = previousRateDoc?.rates.find(rate => rate.currency === target)?.value || null;
-    
-    // Asignar un status según el rate sí sube o baja
-    const status = previousRate ? (currentRate > previousRate ? 'up' : 'dw') : 'no-data';
+
+    // Asignar estado de tendencia con soporte para sin-cambio y sin-datos.
+    let status = 'no-data';
+    if (previousRate !== null) {
+      if (currentRate > previousRate) {
+        status = 'up';
+      } else if (currentRate < previousRate) {
+        status = 'dw';
+      } else {
+        status = 'eq';
+      }
+    }
 
     apiLogger.info(`Comparación realizada: ${base} a ${target}. Estado: ${status}`);
 
