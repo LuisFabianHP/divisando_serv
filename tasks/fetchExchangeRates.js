@@ -20,7 +20,9 @@ const CRON_SCHEDULE = process.env.EXCHANGE_RATE_CRON || '0 * * * *';
 const SAFE_DEFAULT_CURRENCIES = ['USD', 'MXN', 'EUR', 'CAD'];
 
 // Ventanas y umbrales
-const RECENT_HOURS = Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1');
+const RECENT_MINUTES = Number(
+  process.env.EXCHANGE_RATE_RECENT_MINUTES || (Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1') * 60)
+);
 const RATE_ALERT_MIN_CHANGE_PERCENT = Number(process.env.RATE_ALERT_MIN_CHANGE_PERCENT || '2');
 
 // Estado de ejecución del cron
@@ -47,8 +49,8 @@ if (DEFAULT_CURRENCIES.length > 10) {
 if (process.env.EXCHANGE_RATE_CRON && /\*\//.test(process.env.EXCHANGE_RATE_CRON) && process.env.EXCHANGE_RATE_CRON.includes('1')) {
   taskLogger.warn('EXCHANGE_RATE_CRON está configurado para ejecutarse cada minuto. Esto puede causar bloqueos por límite de la API.');
 }
-if (Number(process.env.EXCHANGE_RATE_RECENT_HOURS) < 1) {
-  taskLogger.warn('EXCHANGE_RATE_RECENT_HOURS es menor a 1. Esto puede causar sobreconsultas y bloqueos por límite de la API.');
+if (Number(process.env.EXCHANGE_RATE_RECENT_MINUTES || RECENT_MINUTES) < 30) {
+  taskLogger.warn('EXCHANGE_RATE_RECENT_MINUTES es menor a 30. Esto puede causar sobreconsultas y bloqueos por límite de la API.');
 }
 
 /**
@@ -146,14 +148,14 @@ const detectAndStoreRateChanges = async (baseCurrency, currentRates, sourceUpdat
 
 
 /**
- * Verifica si una moneda tiene registros recientes (hoy).
- * Compara la fecha completa, no solo la hora.
+ * Verifica si una moneda tiene registros recientes.
  */
 async function isCurrencyRecentlyFetched(currency) {
   try {
-    const recentWindowHours = Number.isFinite(RECENT_HOURS) && RECENT_HOURS > 0 ? RECENT_HOURS : 1;
+    // 55 minutos evita saltar la ejecucion siguiente cuando el cron corre a la hora exacta.
+    const recentWindowMinutes = Number.isFinite(RECENT_MINUTES) && RECENT_MINUTES > 0 ? RECENT_MINUTES : 55;
     const since = new Date();
-    since.setHours(since.getHours() - recentWindowHours);
+    since.setMinutes(since.getMinutes() - recentWindowMinutes);
 
     const recentRecord = await ExchangeRate.findOne({
       base_currency: currency,
@@ -307,6 +309,10 @@ const scheduleExchangeRates = () => {
   }
 
   exchangeRatesTask = cron.schedule(CRON_SCHEDULE, runExchangeRates);
+
+  // Sincronizacion inicial para evitar ventanas largas tras reinicios.
+  runExchangeRates();
+
   return exchangeRatesTask;
 };
 
