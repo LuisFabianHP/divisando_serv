@@ -54,8 +54,24 @@ const register = async (req, res, next) => {
             refreshToken: ''
         });
 
-        // Generar código de verificación
-        await generateVerificationCode(user._id, email);
+        try {
+            // Generar código de verificación
+            await generateVerificationCode(user._id, email);
+        } catch (mailError) {
+            // Si falla el envío de correo, revertir creación para permitir reintento limpio.
+            await VerificationCode.deleteMany({ userId: user._id });
+            await User.deleteOne({ _id: user._id });
+
+            apiLogger.error('Registro revertido por fallo de correo de verificación', {
+                email,
+                providerStatus: mailError.providerStatus || 'N/A',
+                providerMessage: mailError.providerMessage || mailError.message,
+            });
+
+            return res.status(503).json({
+                error: 'No se pudo enviar el correo de verificación. Intenta nuevamente más tarde.'
+            });
+        }
 
         res.status(200).json({ userId: user.id });
     } catch (error) {
@@ -416,7 +432,14 @@ const generateVerificationCode = async (userId, email) => {
     } catch(error){
         apiLogger.error(`Error al generar el código de verificación: ${error.message}`, { stack: error.stack });
         console.error('Error al generar el código de verificación. Consulta los logs para más detalles.');
-        throw new Error('Error al intentar generar el código de verificación.');     
+        if (!error.status && !error.statusCode) {
+            error.status = 503;
+            error.statusCode = 503;
+        }
+        if (!error.userMessage) {
+            error.userMessage = 'No se pudo generar el código de verificación. Intenta nuevamente más tarde.';
+        }
+        throw error;
     }
 
 };
