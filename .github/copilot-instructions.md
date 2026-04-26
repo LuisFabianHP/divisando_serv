@@ -19,6 +19,12 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 - `pruebas`: rama exclusiva para validar pruebas y experimentos de testing.
 - `main`: rama de publicación/despliegue.
 
+## Skill asociado
+
+- Skill de flujo operativo/release: `.github/skills/divisando-api-release-flow/SKILL.md`
+- Usar ese skill para: validación de cron, secuencia de pruebas, push, promoción a `main` y release de Railway.
+- Este archivo (`copilot-instructions.md`) conserva solo reglas obligatorias siempre activas.
+
 ## Reglas obligatorias
 
 1. Todo desarrollo funcional se hace en `dev-api-task`.
@@ -42,30 +48,7 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 - Antes de cerrar una tarea, validar que no queden temporales en `git status`.
 - No se permite promover scripts temporales a ramas de desarrollo o publicación.
 
-## Flujo operativo estándar
-
-1. Cambiar a `dev-api-task` y desarrollar.
-2. Commit/push de cambios de desarrollo en `dev-api-task`.
-3. Evaluar si el cambio requiere pruebas en `pruebas` bajo criterios prácticos.
-4. Si no requiere pruebas: documentar la decisión y continuar en `dev-api-task` con cierre de tarea.
-5. Si requiere pruebas: informar al usuario y pedir confirmación (`sí` o `no`) para continuar.
-6. Si el usuario confirma `sí`: cambiar a `pruebas`.
-7. Traer cambios desde `dev-api-task` a `pruebas`.
-8. Ejecutar pruebas en `pruebas`.
-9. Si falla por lógica funcional (no tests): volver a `dev-api-task`, corregir y regresar a `pruebas` para reintentar.
-10. Si falla por scripts de `tests/` o librerías/configuración de testing: corregir directamente en `pruebas` y reintentar en `pruebas`.
-11. Si pasa: push de resultados en `pruebas` y mantener `dev-api-task` actualizado solo con cambios funcionales.
-
 ## Restricciones de promoción
 
 - Prohibido promover cambios desde `pruebas` hacia `dev-api-task`.
 - La promoción a `main` se hace desde trabajo validado en `dev-api-task`.
-
-## Checklist rápido antes de cerrar una tarea
-
-- ¿El código funcional está en `dev-api-task`?
-- ¿Se evaluó explícitamente si las pruebas en `pruebas` eran necesarias?
-- Si eran necesarias: ¿las pruebas se ejecutaron en `pruebas`?
-- Si no eran necesarias: ¿quedó documentada la justificación práctica para omitirlas?
-- ¿`pruebas` no introdujo cambios funcionales que no existan en `dev-api-task`?
-- ¿La promoción a `main` viene de cambios validados?
