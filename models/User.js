@@ -38,7 +38,17 @@ const userSchema = new mongoose.Schema(
         isVerified: { 
             type: Boolean, 
             default: false 
-        } 
+        },
+        // --- Soft delete fields ---
+        status: {
+            type: String,
+            enum: ['active', 'inactive', 'deleted'],
+            default: 'active',
+        },
+        deletedAt: {
+            type: Date,
+            default: null,
+        }
     },
     {
         collection: 'user', // Nombre de la colección en MongoDB

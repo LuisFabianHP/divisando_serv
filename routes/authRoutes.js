@@ -15,8 +15,10 @@ const {
     verificationCode, 
     resendVerificationCode,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    cancelAccount
 } = require('@controllers/authController');
+const validateJWT = require('@middlewares/validateJWT');
 
 // Rutas principales de autenticación
 router.post('/register', register);
@@ -29,5 +31,7 @@ router.post('/code/verification', verificationCodeLimiter, verificationCode);
 router.post('/code/resend', resendCodeLimiter, resendVerificationCode);
 router.post('/password/forgot', forgotPasswordLimiter, forgotPassword);
 router.post('/password/reset', resetPassword);
+// Cancelación de cuenta (soft delete)
+router.delete('/account', validateJWT, cancelAccount);
 
 module.exports = router;
