@@ -205,10 +205,10 @@ const verificationCode  = async (req, res, next) => {
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
 
+        const user = await User.findOne({ email, status: 'active' });
         if (!user || !(await user.matchPassword(password))) {
-            return res.status(401).json({ error: 'Credenciales inválidas.' });
+            return res.status(401).json({ error: 'Credenciales inválidas o cuenta cancelada.' });
         }
 
         // Generar Refresh Token y calcular fecha de expiración
@@ -270,7 +270,7 @@ const loginWithGoogle = async (req, res, next) => {
         const { sub: googleId, email, name } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: googleId, provider: 'google' });
+        let user = await User.findOne({ providerId: googleId, provider: 'google', status: 'active' });
 
         if (!user) {
             // Crear nuevo usuario
@@ -325,7 +325,7 @@ const loginWithApple = async (req, res, next) => {
         const { sub: appleId, email } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: appleId, provider: 'apple' });
+        let user = await User.findOne({ providerId: appleId, provider: 'apple', status: 'active' });
 
         if (!user) {
             // Crear nuevo usuario
@@ -370,9 +370,9 @@ const refreshAccessToken = async (req, res, next) => {
             return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
     
-        const user = await User.findById(payload.id);
+        const user = await User.findOne({ _id: payload.id, status: 'active' });
         if (!user || user.refreshToken !== refreshToken) {
-            return res.status(403).json({ error: 'Refresh Token no válido.' });
+            return res.status(403).json({ error: 'Refresh Token no válido o cuenta cancelada.' });
         }
     
         // Regenerar Refresh Token y devolverlo
@@ -585,11 +585,46 @@ const generateAndStoreVerificationCode = async (userId, type) => {
     }
 };
 
+/**
+ * Cancelación de cuenta (soft delete)
+ * DELETE /auth/account
+ * Requiere JWT. Opcional: password en body para reconfirmar.
+ */
+const cancelAccount = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { password } = req.body || {};
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
+        }
+        if (user.status === 'deleted') {
+            return res.status(400).json({ success: false, error: 'La cuenta ya está cancelada.' });
+        }
+        // Si el usuario tiene password (no social), pedir confirmación
+        if (user.provider === 'local') {
+            if (!password || !(await user.matchPassword(password))) {
+                return res.status(401).json({ success: false, error: 'Contraseña incorrecta.' });
+            }
+        }
+        user.status = 'deleted';
+        user.deletedAt = new Date();
+        user.refreshToken = '';
+        await user.save();
+        // Opcional: invalidar otros tokens activos (según implementación)
+        res.status(200).json({ success: true, message: 'Cuenta cancelada lógicamente (soft delete).' });
+    } catch (error) {
+        apiLogger.error(`Error en cancelAccount: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ success: false, error: 'Error al cancelar la cuenta.' });
+    }
+};
+
 module.exports = { 
     register, 
     login,
     loginWithGoogle,
     loginWithApple,
+    cancelAccount,
     refreshAccessToken, 
     logout,
     verificationCode,
