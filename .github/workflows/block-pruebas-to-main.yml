@@ -1,18 +1,18 @@
-name: Block pruebas PR to main
+name: Block merges from 'pruebas' to main or dev
 
 on:
   pull_request:
     branches:
       - main
+      - dev-api-task
+      - dev
 
 jobs:
   block-pruebas:
+    if: github.head_ref == 'pruebas'
     runs-on: ubuntu-latest
     steps:
-      - name: Block pruebas as source branch
+      - name: Block PR from 'pruebas' branch
         run: |
-          echo "PR source branch: ${{ github.head_ref }}"
-          if [ "${{ github.head_ref }}" = "pruebas" ]; then
-            echo "Direct PR from 'pruebas' to 'main' is blocked. Promote changes from 'dev-api-task'."
-            exit 1
-          fi
+          echo "❌ Está prohibido hacer merge desde 'pruebas' a main o ramas de desarrollo (main, dev-api-task, dev). Cierra este PR y promueve cambios desde la rama de desarrollo correspondiente."
+          exit 1
