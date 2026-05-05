@@ -1,3 +1,4 @@
+// --- SETUP Y CONFIGURACIÓN GLOBAL ---
 const moduleAlias = require('module-alias');
 const pkg = require('../../package.json');
 moduleAlias.addAliases(pkg._moduleAliases || {});
@@ -17,6 +18,72 @@ const { connectDB, closeDB } = require('@config/database');
 const User = require('@models/User');
 const VerificationCode = require('@models/VerificationCode');
 
+// Timeout extendido para operaciones async con base de datos
+jest.setTimeout(30000);
+
+// --- SOFT DELETE FLOW ---
+describe('Soft Delete Flow', () => {
+  const softDeleteUser = {
+    username: 'softdeleteuser',
+    email: 'softdeleteuser@example.com',
+    password: 'SoftDelete123!'
+  };
+  let accessToken;
+
+  beforeAll(async () => {
+    await connectDB();
+    await User.deleteMany({ email: softDeleteUser.email });
+    await request(app)
+      .post('/auth/register')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .send(softDeleteUser);
+    // Verificar usuario (simular verificación directa)
+    const user = await User.findOne({ email: softDeleteUser.email });
+    user.isVerified = true;
+    await user.save();
+    // Login para obtener access token
+    const loginRes = await request(app)
+      .post('/auth/login')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .send({ email: softDeleteUser.email, password: softDeleteUser.password });
+    accessToken = loginRes.body.refreshToken;
+  });
+
+  afterAll(async () => {
+    await User.deleteOne({ email: softDeleteUser.email });
+    await closeDB();
+  });
+
+  test('debe cancelar la cuenta correctamente', async () => {
+    const res = await request(app)
+      .delete('/auth/account')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ password: softDeleteUser.password });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.message).toMatch(/cancelada/i);
+    // Verificar en base de datos
+    const user = await User.findOne({ email: softDeleteUser.email });
+    expect(user.status).toBe('deleted');
+    expect(user.deletedAt).not.toBeNull();
+  });
+
+  test('no permite login después de soft delete', async () => {
+    const res = await request(app)
+      .post('/auth/login')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .send({ email: softDeleteUser.email, password: softDeleteUser.password });
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toMatch(/cancelada/i);
+  });
+});
+
+// --- RESTO DE PRUEBAS DE INTEGRACIÓN ---
 const runId = Date.now();
 const accountUser = {
   username: `newuser_${runId}`,
