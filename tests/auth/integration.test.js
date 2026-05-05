@@ -262,3 +262,118 @@ describe('Auth integration (account verification, password reset, login)', () =>
     }
   });
 });
+
+// --- PROFILE FLOW ---
+describe('Profile Flow', () => {
+  const profileUser = {
+    username: 'profileuser',
+    email: 'profileuser@example.com',
+    password: 'Profile123!'
+  };
+  let accessToken;
+
+  beforeAll(async () => {
+    await connectDB();
+    await User.deleteMany({ email: profileUser.email });
+
+    // Registrar y verificar usuario
+    await request(app)
+      .post('/auth/register')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .send(profileUser);
+
+    const user = await User.findOne({ email: profileUser.email });
+    user.isVerified = true;
+    await user.save();
+
+    // Login para obtener accessToken
+    const loginRes = await request(app)
+      .post('/auth/login')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .send({ email: profileUser.email, password: profileUser.password });
+
+    accessToken = loginRes.body.refreshToken;
+  });
+
+  afterAll(async () => {
+    await User.deleteMany({ email: profileUser.email });
+    await closeDB();
+  });
+
+  test('GET /auth/profile returns user data', async () => {
+    const res = await request(app)
+      .get('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`);
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user).toMatchObject({
+      username: profileUser.username,
+      email: profileUser.email,
+    });
+    expect(res.body.user).toHaveProperty('isVerified', true);
+    expect(res.body.user).toHaveProperty('status', 'active');
+  });
+
+  test('GET /auth/profile returns 401 without token', async () => {
+    const res = await request(app)
+      .get('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0');
+
+    expect(res.statusCode).toBe(401);
+  });
+
+  test('PUT /auth/profile updates username', async () => {
+    const res = await request(app)
+      .put('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'profileupdated' });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.user.username).toBe('profileupdated');
+  });
+
+  test('PUT /auth/profile rejects username too short', async () => {
+    const res = await request(app)
+      .put('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ username: 'ab' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('PUT /auth/profile rejects invalid email', async () => {
+    const res = await request(app)
+      .put('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ email: 'not-an-email' });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('PUT /auth/profile returns 400 with no fields', async () => {
+    const res = await request(app)
+      .put('/auth/profile')
+      .set('x-api-key', process.env.API_KEY)
+      .set('User-Agent', 'DivisandoApp/1.0')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({});
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+});
