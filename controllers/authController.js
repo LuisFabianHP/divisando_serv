@@ -32,6 +32,8 @@ const buildUserPayload = (user) => ({
     provider: user.provider,
 });
 
+const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
+
 /**
  * Registro de nuevos usuarios.
  */
@@ -205,10 +207,10 @@ const verificationCode  = async (req, res, next) => {
 const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
 
+        const user = await User.findOne({ email, status: 'active' });
         if (!user || !(await user.matchPassword(password))) {
-            return res.status(401).json({ error: 'Credenciales inválidas.' });
+            return res.status(401).json({ error: 'Credenciales inválidas o cuenta cancelada.' });
         }
 
         // Generar Refresh Token y calcular fecha de expiración
@@ -270,7 +272,7 @@ const loginWithGoogle = async (req, res, next) => {
         const { sub: googleId, email, name } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: googleId, provider: 'google' });
+        let user = await User.findOne({ providerId: googleId, provider: 'google', status: 'active' });
 
         if (!user) {
             // Crear nuevo usuario
@@ -325,7 +327,7 @@ const loginWithApple = async (req, res, next) => {
         const { sub: appleId, email } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: appleId, provider: 'apple' });
+        let user = await User.findOne({ providerId: appleId, provider: 'apple', status: 'active' });
 
         if (!user) {
             // Crear nuevo usuario
@@ -370,9 +372,9 @@ const refreshAccessToken = async (req, res, next) => {
             return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
     
-        const user = await User.findById(payload.id);
+        const user = await User.findOne({ _id: payload.id, status: 'active' });
         if (!user || user.refreshToken !== refreshToken) {
-            return res.status(403).json({ error: 'Refresh Token no válido.' });
+            return res.status(403).json({ error: 'Refresh Token no válido o cuenta cancelada.' });
         }
     
         // Regenerar Refresh Token y devolverlo
@@ -585,11 +587,143 @@ const generateAndStoreVerificationCode = async (userId, type) => {
     }
 };
 
+/**
+ * Cancelación de cuenta (soft delete)
+ * DELETE /auth/account
+ * Requiere JWT. Opcional: password en body para reconfirmar.
+ */
+const cancelAccount = async (req, res, next) => {
+    try {
+        const userId = req.user.id;
+        const { password } = req.body || {};
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
+        }
+        if (user.status === 'deleted') {
+            return res.status(400).json({ success: false, error: 'La cuenta ya está cancelada.' });
+        }
+        // Si el usuario tiene password (no social), pedir confirmación
+        if (user.provider === 'local') {
+            if (!password || !(await user.matchPassword(password))) {
+                return res.status(401).json({ success: false, error: 'Contraseña incorrecta.' });
+            }
+        }
+        user.status = 'deleted';
+        user.deletedAt = new Date();
+        user.refreshToken = '';
+        await user.save();
+        // Opcional: invalidar otros tokens activos (según implementación)
+        res.status(200).json({ success: true, message: 'Cuenta cancelada lógicamente (soft delete).' });
+    } catch (error) {
+        apiLogger.error(`Error en cancelAccount: ${error.message}`, { stack: error.stack });
+        res.status(500).json({ success: false, error: 'Error al cancelar la cuenta.' });
+    }
+};
+
+/**
+ * Obtener perfil del usuario autenticado.
+ * GET /auth/profile
+ */
+const getProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user || user.status !== 'active') {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
+        }
+
+        return res.status(200).json({
+            success: true,
+            user: {
+                ...buildUserPayload(user),
+                isVerified: user.isVerified,
+                status: user.status,
+            }
+        });
+    } catch (error) {
+        apiLogger.error(`Error en getProfile: ${error.message}`, { stack: error.stack });
+        return res.status(500).json({ success: false, error: 'Error al obtener perfil.' });
+    }
+};
+
+/**
+ * Actualizar perfil del usuario autenticado.
+ * PUT /auth/profile
+ * Campos permitidos: username, email
+ */
+const updateProfile = async (req, res) => {
+    try {
+        const { username, email } = req.body || {};
+
+        if (typeof username === 'undefined' && typeof email === 'undefined') {
+            return res.status(400).json({ success: false, error: 'Debes enviar al menos un campo para actualizar.' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user || user.status !== 'active') {
+            return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
+        }
+
+        if (typeof username !== 'undefined') {
+            const sanitizedUsername = String(username).trim();
+            if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
+                return res.status(400).json({ success: false, error: 'El username debe tener entre 3 y 30 caracteres.' });
+            }
+
+            if (sanitizedUsername !== user.username) {
+                const usernameExists = await User.findOne({ username: sanitizedUsername, _id: { $ne: user._id } });
+                if (usernameExists) {
+                    return res.status(409).json({ success: false, error: 'El nombre de usuario ya está en uso.' });
+                }
+            }
+
+            user.username = sanitizedUsername;
+        }
+
+        if (typeof email !== 'undefined') {
+            const sanitizedEmail = String(email).trim().toLowerCase();
+            if (!isValidEmail(sanitizedEmail)) {
+                return res.status(400).json({ success: false, error: 'Email inválido.' });
+            }
+
+            if (sanitizedEmail !== user.email) {
+                const emailExists = await User.findOne({ email: sanitizedEmail, _id: { $ne: user._id } });
+                if (emailExists) {
+                    return res.status(409).json({ success: false, error: 'El correo ya está en uso.' });
+                }
+            }
+
+            user.email = sanitizedEmail;
+        }
+
+        await user.save();
+
+        apiLogger.info('Perfil actualizado', {
+            userId: user._id,
+            email: user.email,
+            updatedFields: Object.keys(req.body || {}),
+            timestamp: new Date().toISOString()
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Perfil actualizado correctamente.',
+            user: buildUserPayload(user)
+        });
+    } catch (error) {
+        apiLogger.error(`Error en updateProfile: ${error.message}`, { stack: error.stack });
+        return res.status(500).json({ success: false, error: 'Error al actualizar perfil.' });
+    }
+};
+
 module.exports = { 
     register, 
     login,
     loginWithGoogle,
     loginWithApple,
+    cancelAccount,
+    getProfile,
+    updateProfile,
     refreshAccessToken, 
     logout,
     verificationCode,
