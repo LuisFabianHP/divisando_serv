@@ -20,6 +20,7 @@ if (!isProductionRuntime) {
 const app = require("./app");
 const PORT = process.env.PORT || 8080;
 const API_NAME = process.env.API_NAME;
+const DEPLOY_SHA = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'unknown';
 
 const serverRef = { current: null };
 let memoryLogInterval = null;
@@ -40,6 +41,7 @@ connectDB()
   // Iniciar servidor HTTP (Railway maneja HTTPS automáticamente)
   serverRef.current = http.createServer(app).listen(PORT, () => {
     console.log(`✅ Servidor escuchando en el puerto \x1b[36m${PORT}\x1b[0m`);
+    console.log(`[DEPLOY_MARKER] service=${API_NAME || 'divisando_serv'} sha=${DEPLOY_SHA} startedAt=${new Date().toISOString()}`);
     scheduleCleanup(); // Tarea de limpieza de usuarios no verificados
     scheduleMemoryMonitor(); // Monitoreo de memoria cada 5min
     scheduleGarbageCollector(); // Garbage collection cada 30min
