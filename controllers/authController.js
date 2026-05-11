@@ -1,5 +1,6 @@
 const User = require('@models/User');
 const VerificationCode = require('@models/VerificationCode');
+const mongoose = require('mongoose');
 const { generateRefreshToken, validateRefreshToken } = require('@utils/refreshToken');
 const { sendVerificationEmail, sendPasswordChangedEmail } = require('@services/emailService.js');
 const { apiLogger } = require('@utils/logger');
@@ -34,6 +35,7 @@ const buildUserPayload = (user) => ({
 
 const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
 const getUserIdFromTokenPayload = (payload = {}) => payload.id || payload.userId || payload._id || null;
+const isValidObjectId = (value) => Boolean(value) && mongoose.Types.ObjectId.isValid(String(value));
 
 /**
  * Registro de nuevos usuarios.
@@ -599,6 +601,9 @@ const cancelAccount = async (req, res, next) => {
         if (!userId) {
             return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
         }
+        if (!isValidObjectId(userId)) {
+            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
+        }
 
         const { password } = req.body || {};
         const user = await User.findById(userId);
@@ -636,6 +641,9 @@ const getProfile = async (req, res) => {
         if (!userId) {
             return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
         }
+        if (!isValidObjectId(userId)) {
+            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
+        }
 
         const user = await User.findById(userId);
         if (!user || user.status !== 'active') {
@@ -672,6 +680,9 @@ const updateProfile = async (req, res) => {
         const userId = getUserIdFromTokenPayload(req.user);
         if (!userId) {
             return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+        }
+        if (!isValidObjectId(userId)) {
+            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
         }
 
         const user = await User.findById(userId);
