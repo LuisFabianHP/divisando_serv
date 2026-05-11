@@ -33,6 +33,7 @@ const buildUserPayload = (user) => ({
 });
 
 const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
+const getUserIdFromTokenPayload = (payload = {}) => payload.id || payload.userId || payload._id || null;
 
 /**
  * Registro de nuevos usuarios.
@@ -594,7 +595,11 @@ const generateAndStoreVerificationCode = async (userId, type) => {
  */
 const cancelAccount = async (req, res, next) => {
     try {
-        const userId = req.user.id;
+        const userId = getUserIdFromTokenPayload(req.user);
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+        }
+
         const { password } = req.body || {};
         const user = await User.findById(userId);
         if (!user) {
@@ -627,7 +632,12 @@ const cancelAccount = async (req, res, next) => {
  */
 const getProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const userId = getUserIdFromTokenPayload(req.user);
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+        }
+
+        const user = await User.findById(userId);
         if (!user || user.status !== 'active') {
             return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
         }
@@ -659,7 +669,12 @@ const updateProfile = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Debes enviar al menos un campo para actualizar.' });
         }
 
-        const user = await User.findById(req.user.id);
+        const userId = getUserIdFromTokenPayload(req.user);
+        if (!userId) {
+            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+        }
+
+        const user = await User.findById(userId);
         if (!user || user.status !== 'active') {
             return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
         }
