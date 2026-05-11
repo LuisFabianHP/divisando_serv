@@ -22,6 +22,12 @@ const {
 } = require('@controllers/authController');
 const validateJWT = require('@middlewares/validateJWT');
 
+const logProfileRouteHit = (req, _res, next) => {
+    const traceId = req.headers['x-trace-id'] || '-';
+    console.log(`[PROFILE_ROUTE_HIT] method=${req.method} path=${req.originalUrl} traceId=${traceId}`);
+    next();
+};
+
 // Rutas principales de autenticación
 router.post('/register', register);
 router.post('/login', login);
@@ -33,8 +39,8 @@ router.post('/code/verification', verificationCodeLimiter, verificationCode);
 router.post('/code/resend', resendCodeLimiter, resendVerificationCode);
 router.post('/password/forgot', forgotPasswordLimiter, forgotPassword);
 router.post('/password/reset', resetPassword);
-router.get('/profile', validateJWT, getProfile);
-router.put('/profile', validateJWT, updateProfile);
+router.get('/profile', logProfileRouteHit, validateJWT, getProfile);
+router.put('/profile', logProfileRouteHit, validateJWT, updateProfile);
 // Cancelación de cuenta (soft delete)
 router.delete('/account', validateJWT, cancelAccount);
 
