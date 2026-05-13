@@ -6,7 +6,7 @@ const { scheduleCleanup, stopCleanup } = require("@tasks/cleanupUnverifiedUsers"
 const { scheduleMemoryMonitor, stopMemoryMonitor } = require("@tasks/memoryMonitor");
 const { scheduleGarbageCollector, stopGarbageCollector } = require("@tasks/garbageCollector");
 const apiRateLimiter = require("@middlewares/rateLimiter");
-const { closeLoggers } = require("@utils/logger");
+const { apiLogger, closeLoggers } = require("@utils/logger");
 const { createGracefulShutdown } = require("@utils/gracefulShutdown");
 const { normalizeEnvValue } = require("./utils/envNormalizer");
 const dotenv = require('dotenv');
@@ -39,7 +39,27 @@ connectDB()
   }
 
   // Iniciar servidor HTTP (Railway maneja HTTPS automáticamente)
-  serverRef.current = http.createServer(app).listen(PORT, () => {
+  const server = http.createServer(app);
+
+  server.on('error', (error) => {
+    if (error && error.code === 'EADDRINUSE') {
+      apiLogger.error('No se pudo iniciar el servidor: puerto en uso.', {
+        code: error.code,
+        port: PORT,
+      });
+      process.exit(1);
+      return;
+    }
+
+    apiLogger.error('No se pudo iniciar el servidor.', {
+      message: error.message,
+      code: error.code || 'UNKNOWN',
+      port: PORT,
+    });
+    process.exit(1);
+  });
+
+  serverRef.current = server.listen(PORT, () => {
     console.log(`✅ Servidor escuchando en el puerto \x1b[36m${PORT}\x1b[0m`);
     console.log(`[DEPLOY_MARKER] service=${API_NAME || 'divisando_serv'} sha=${DEPLOY_SHA} startedAt=${new Date().toISOString()}`);
     scheduleCleanup(); // Tarea de limpieza de usuarios no verificados
@@ -70,7 +90,9 @@ connectDB()
   });
 })
 .catch((error) => {
-  console.error("❌ Error crítico al iniciar el servidor:", error.message);
+  apiLogger.error('Error crítico al iniciar el servidor.', {
+    message: error.message,
+  });
 });
 
 const gracefulShutdown = createGracefulShutdown({
