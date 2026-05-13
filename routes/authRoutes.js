@@ -8,7 +8,6 @@ const {
 const { 
     login,
     loginWithGoogle,
-    loginWithApple,
     register, 
     refreshAccessToken, 
     logout,
@@ -32,7 +31,9 @@ const logProfileRouteHit = (req, _res, next) => {
 router.post('/register', register);
 router.post('/login', login);
 router.post('/google', loginWithGoogle); // Endpoint para mobile/Flutter (Google)
-router.post('/apple', loginWithApple); // Endpoint para mobile/Flutter (Apple)
+router.post('/apple', (_req, res) => res.status(410).json({
+    error: 'Login con Apple deshabilitado temporalmente.'
+}));
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
 router.post('/code/verification', verificationCodeLimiter, verificationCode);
