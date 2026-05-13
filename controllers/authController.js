@@ -36,6 +36,9 @@ const buildUserPayload = (user) => ({
 const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
 const getUserIdFromTokenPayload = (payload = {}) => payload.id || payload.userId || payload._id || null;
 const isValidObjectId = (value) => Boolean(value) && mongoose.Types.ObjectId.isValid(String(value));
+const activeOrLegacyStatusFilter = {
+    $or: [{ status: 'active' }, { status: { $exists: false } }],
+};
 
 /**
  * Registro de nuevos usuarios.
@@ -211,7 +214,7 @@ const login = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email, status: 'active' });
+        const user = await User.findOne({ email, ...activeOrLegacyStatusFilter });
         if (!user || !(await user.matchPassword(password))) {
             return res.status(401).json({ error: 'Credenciales inválidas o cuenta cancelada.' });
         }
@@ -275,7 +278,7 @@ const loginWithGoogle = async (req, res, next) => {
         const { sub: googleId, email, name } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: googleId, provider: 'google', status: 'active' });
+        let user = await User.findOne({ providerId: googleId, provider: 'google', ...activeOrLegacyStatusFilter });
 
         if (!user) {
             // Crear nuevo usuario
@@ -330,7 +333,7 @@ const loginWithApple = async (req, res, next) => {
         const { sub: appleId, email } = payload;
 
         // Buscar o crear usuario
-        let user = await User.findOne({ providerId: appleId, provider: 'apple', status: 'active' });
+        let user = await User.findOne({ providerId: appleId, provider: 'apple', ...activeOrLegacyStatusFilter });
 
         if (!user) {
             // Crear nuevo usuario
@@ -375,7 +378,7 @@ const refreshAccessToken = async (req, res, next) => {
             return res.status(403).json({ error: 'Refresh Token inválido.' });
         }
     
-        const user = await User.findOne({ _id: payload.id, status: 'active' });
+        const user = await User.findOne({ _id: payload.id, ...activeOrLegacyStatusFilter });
         if (!user || user.refreshToken !== refreshToken) {
             return res.status(403).json({ error: 'Refresh Token no válido o cuenta cancelada.' });
         }
