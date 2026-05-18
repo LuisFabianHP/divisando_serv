@@ -50,7 +50,7 @@ const register = async (req, res, next) => {
         // Verificar si el usuario o correo ya existe
         const userExists = await User.findOne({ email });
         if (userExists) {
-            return res.status(400).json({ error: 'El usuario o correo ya está registrado.' });
+            return res.status(400).json({ success: false, error: 'usuario_ya_registrado' });
         }
 
         // Crear nuevo usuario
@@ -76,17 +76,15 @@ const register = async (req, res, next) => {
                 providerMessage: mailError.providerMessage || mailError.message,
             });
 
-            return res.status(503).json({
-                error: 'No se pudo enviar el correo de verificación. Intenta nuevamente más tarde.'
-            });
+            return res.status(503).json({ success: false, error: 'error_envio_correo' });
         }
 
-        res.status(200).json({ userId: user.id });
+        res.status(200).json({ success: true, userId: user.id });
     } catch (error) {
         apiLogger.error(`Error al registrar el usuario: ${error.message}`, { stack: error.stack });
         // Solo mostrar mensaje descriptivo en consola
         console.error('Error al registrar el usuario. Consulta los logs para más detalles.');
-        res.status(500).json({ error: 'Error al registrar la cuenta de usuario.' });
+        res.status(500).json({ success: false, error: 'error_interno' });
     }
 };
 
@@ -100,7 +98,7 @@ const verificationCode  = async (req, res, next) => {
         // Buscar usuario por userId o por email
         const user = userId ? await User.findById(userId) : await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         // Buscar el código sin filtrar por tipo para soportar account_verification y password_reset
@@ -126,27 +124,21 @@ const verificationCode  = async (req, res, next) => {
                     updatedCode.isBlocked = true;
                     await updatedCode.save();
 
-                    return res.status(403).json({
-                        success: false,
-                        error: 'Código bloqueado por exceso de intentos. Solicita un nuevo código.'
-                    });
+                    return res.status(403).json({ success: false, error: 'codigo_bloqueado' });
                 }
             }
             
-            return res.status(400).json({ success: false, error: 'Código inválido.' });
+            return res.status(400).json({ success: false, error: 'codigo_invalido' });
         }
 
         // Validar si el código está bloqueado por exceso de intentos
         if (verificationCode.isBlocked) {
-            return res.status(403).json({ 
-                success: false, 
-                error: 'Código bloqueado por exceso de intentos. Solicita un nuevo código.' 
-            });
+            return res.status(403).json({ success: false, error: 'codigo_bloqueado' });
         }
 
         // Validar si el código expiró
         if (verificationCode.expiresAt < new Date()) {
-            return res.status(400).json({ success: false, error: 'Código expirado.' });
+            return res.status(400).json({ success: false, error: 'codigo_expirado' });
         }
 
         // Validar si se excedieron los intentos permitidos
@@ -160,10 +152,7 @@ const verificationCode  = async (req, res, next) => {
                 attempts: verificationCode.attempts
             });
             
-            return res.status(403).json({ 
-                success: false, 
-                error: 'Has excedido el número máximo de intentos. Solicita un nuevo código.' 
-            });
+            return res.status(403).json({ success: false, error: 'codigo_bloqueado' });
         }
 
         // Comportamientos distintos según el tipo de código
@@ -198,7 +187,7 @@ const verificationCode  = async (req, res, next) => {
         }
 
         // Si por alguna razón el tipo no está reconocido
-        res.status(400).json({ success: false, error: 'Tipo de código no reconocido.' });
+        res.status(400).json({ success: false, error: 'tipo_codigo_invalido' });
     } catch (error) {
         apiLogger.error(`Error en verificación de código: ${error.message}`, { stack: error.stack });
         console.error('Error en verificación de código. Consulta los logs para más detalles.');
@@ -216,7 +205,7 @@ const login = async (req, res, next) => {
 
         const user = await User.findOne({ email, ...activeOrLegacyStatusFilter });
         if (!user || !(await user.matchPassword(password))) {
-            return res.status(401).json({ error: 'Credenciales inválidas o cuenta cancelada.' });
+            return res.status(401).json({ success: false, error: 'credenciales_invalidas' });
         }
 
         // Generar Refresh Token y calcular fecha de expiración
@@ -228,7 +217,7 @@ const login = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
     
-        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
+        res.status(200).json({ success: true, refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en login: ${error.message}`, { stack: error.stack });
         console.error('Error en login. Consulta los logs para más detalles.');
@@ -244,13 +233,13 @@ const loginWithGoogle = async (req, res, next) => {
         const { idToken } = req.body;
         
         if (!idToken) {
-            return res.status(400).json({ error: 'idToken es requerido.' });
+            return res.status(400).json({ success: false, error: 'idtoken_requerido' });
         }
 
         const googleAudiences = getGoogleAudiences();
         if (googleAudiences.length === 0) {
             apiLogger.error('Configuración Google incompleta: falta GOOGLE_CLIENT_ID o audiencias equivalentes.');
-            return res.status(500).json({ error: 'Configuración Google incompleta en servidor.' });
+            return res.status(500).json({ success: false, error: 'configuracion_google_incompleta' });
         }
 
         // Verificar firma/issuer/expiración del idToken con Google
@@ -272,7 +261,7 @@ const loginWithGoogle = async (req, res, next) => {
                 tokenAuthorizedParty,
                 configuredAudiences: googleAudiences,
             });
-            return res.status(401).json({ error: 'Token de Google inválido.' });
+            return res.status(401).json({ success: false, error: 'token_google_invalido' });
         }
 
         const { sub: googleId, email, name } = payload;
@@ -300,11 +289,11 @@ const loginWithGoogle = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
+        res.status(200).json({ success: true, refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithGoogle: ${error.message}`, { stack: error.stack });
         console.error('Error en login con Google. Consulta los logs para más detalles.');
-        res.status(401).json({ error: 'Token de Google inválido.' });
+        res.status(401).json({ success: false, error: 'token_google_invalido' });
     }
 };
 
@@ -316,7 +305,7 @@ const loginWithApple = async (req, res, next) => {
         const { identityToken } = req.body;
         
         if (!identityToken) {
-            return res.status(400).json({ error: 'identityToken es requerido.' });
+            return res.status(400).json({ success: false, error: 'identity_token_requerido' });
         }
 
         // TODO: Verificar el identityToken con Apple
@@ -326,7 +315,7 @@ const loginWithApple = async (req, res, next) => {
         // Decodificar el JWT sin verificar (solo para desarrollo)
         const parts = identityToken.split('.');
         if (parts.length !== 3) {
-            return res.status(401).json({ error: 'Token de Apple inválido.' });
+            return res.status(401).json({ success: false, error: 'token_apple_invalido' });
         }
 
         const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
@@ -355,11 +344,11 @@ const loginWithApple = async (req, res, next) => {
         user.refreshToken = refreshToken;
         await user.save();
 
-        res.status(200).json({ refreshToken, expiresAt, user: buildUserPayload(user) });
+        res.status(200).json({ success: true, refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en loginWithApple: ${error.message}`, { stack: error.stack });
         console.error('Error en login con Apple. Consulta los logs para más detalles.');
-        res.status(401).json({ error: 'Token de Apple inválido.' });
+        res.status(401).json({ success: false, error: 'token_apple_invalido' });
     }
 };
 
@@ -370,17 +359,17 @@ const refreshAccessToken = async (req, res, next) => {
     try {
         const { refreshToken } = req.body;
         if (!refreshToken) {
-            return res.status(400).json({ error: 'El Refresh Token es requerido.' });
+            return res.status(400).json({ success: false, error: 'refresh_token_requerido' });
         }
     
         const payload = validateRefreshToken(refreshToken);
         if (!payload) {
-            return res.status(403).json({ error: 'Refresh Token inválido.' });
+            return res.status(403).json({ success: false, error: 'refresh_token_invalido' });
         }
     
         const user = await User.findOne({ _id: payload.id, ...activeOrLegacyStatusFilter });
         if (!user || user.refreshToken !== refreshToken) {
-            return res.status(403).json({ error: 'Refresh Token no válido o cuenta cancelada.' });
+            return res.status(403).json({ success: false, error: 'refresh_token_invalido' });
         }
     
         // Regenerar Refresh Token y devolverlo
@@ -391,7 +380,7 @@ const refreshAccessToken = async (req, res, next) => {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + parseInt(process.env.JWT_EXPIRES_IN || 7));
     
-        res.status(200).json({ refreshToken: user.refreshToken, expiresAt, user: buildUserPayload(user) });
+        res.status(200).json({ success: true, refreshToken: user.refreshToken, expiresAt, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en refresh token: ${error.message}`, { stack: error.stack });
         console.error('Error en refresh token. Consulta los logs para más detalles.');
@@ -406,19 +395,19 @@ const logout = async (req, res, next) => {
     try {
         const { refreshToken } = req.body;
         if (!refreshToken) {
-            return res.status(400).json({ error: 'El Refresh Token es requerido para cerrar sesión.' });
+            return res.status(400).json({ success: false, error: 'refresh_token_requerido' });
         }
     
         const user = await User.findOne({ refreshToken });
         if (!user) {
-            return res.status(403).json({ error: 'El Refresh Token no está asociado a ningún usuario.' });
+            return res.status(403).json({ success: false, error: 'refresh_token_no_encontrado' });
         }
     
         // Eliminar Refresh Token
         user.refreshToken = '';
         await user.save();
     
-        res.status(200).json({ message: 'Sesión cerrada correctamente.' });
+        res.status(200).json({ success: true });
     } catch (error) {
         apiLogger.error('Error en logout', { message: error.message, stack: error.stack });
         console.error('Error en logout. Consulta los logs para más detalles.');
@@ -461,18 +450,18 @@ const resendVerificationCode = async (req, res, next) => {
         const user = await User.findOne({ _id: userId });
 
         if (!user) {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         // Solo permitir reenvío si no hay un código activo
         const existingCode = await VerificationCode.findOne({ userId: user._id, type: 'account_verification' });
         if (existingCode && existingCode.expiresAt > new Date()) {
-            return res.status(400).json({ success: false, error: 'Ya existe un código válido, revisa tu correo o intenta en 5 min.' });
+            return res.status(400).json({ success: false, error: 'codigo_activo_existente' });
         }
 
         await generateVerificationCode(user._id, email);
 
-        res.status(200).json({ success: true, message: 'Nuevo código de verificación enviado.' });
+        res.status(200).json({ success: true });
     } catch (error) {
         apiLogger.error(`Error en reenvío de código: ${error.message}`, { stack: error.stack });
         console.error('Error en reenvío de código. Consulta los logs para más detalles.');
@@ -490,7 +479,7 @@ const forgotPassword = async (req, res, next) => {
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         // Log de auditoría para solicitud de código de recuperación
@@ -508,7 +497,7 @@ const forgotPassword = async (req, res, next) => {
         await sendVerificationEmail(user.email, code);
 
         // Devolver userId opcional para que la UI pueda reutilizarlo si es necesario
-        res.status(200).json({ success: true, message: 'Código de recuperación enviado.', userId: user.id });
+        res.status(200).json({ success: true, userId: user.id });
     } catch (error) {
         apiLogger.error(`Error en recuperación de contraseña: ${error.message}`, { stack: error.stack });
         console.error('Error en recuperación de contraseña. Consulta los logs para más detalles.');
@@ -526,7 +515,7 @@ const resetPassword = async (req, res, next) => {
 
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         const verificationCode = await VerificationCode.findOne({ userId: user._id, code, type: 'password_reset' });
@@ -540,7 +529,7 @@ const resetPassword = async (req, res, next) => {
                 timestamp: new Date().toISOString()
             });
             
-            return res.status(400).json({ error: 'Código inválido o expirado.' });
+            return res.status(400).json({ success: false, error: 'codigo_invalido_o_expirado' });
         }
 
         // Eliminar código después de usarlo
@@ -563,7 +552,7 @@ const resetPassword = async (req, res, next) => {
         await sendPasswordChangedEmail(user.email, user.username);
 
         console.log(`✅ Contraseña restablecida correctamente.`);
-        res.status(200).json({ success: true, message: 'Contraseña restablecida correctamente.' });
+        res.status(200).json({ success: true });
     } catch (error) {
         apiLogger.error(`Error al restablecer contraseña: ${error.message}`, { stack: error.stack });
         console.error('Error al restablecer contraseña. Consulta los logs para más detalles.');
@@ -602,24 +591,24 @@ const cancelAccount = async (req, res, next) => {
     try {
         const userId = getUserIdFromTokenPayload(req.user);
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
         if (!isValidObjectId(userId)) {
-            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
 
         const { password } = req.body || {};
         const user = await User.findById(userId);
         if (!user) {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
         if (user.status === 'deleted') {
-            return res.status(400).json({ success: false, error: 'La cuenta ya está cancelada.' });
+            return res.status(400).json({ success: false, error: 'cuenta_ya_cancelada' });
         }
         // Si el usuario tiene password (no social), pedir confirmación
         if (user.provider === 'local') {
             if (!password || !(await user.matchPassword(password))) {
-                return res.status(401).json({ success: false, error: 'Contraseña incorrecta.' });
+                return res.status(401).json({ success: false, error: 'contrasena_incorrecta' });
             }
         }
         user.status = 'deleted';
@@ -627,10 +616,10 @@ const cancelAccount = async (req, res, next) => {
         user.refreshToken = '';
         await user.save();
         // Opcional: invalidar otros tokens activos (según implementación)
-        res.status(200).json({ success: true, message: 'Cuenta cancelada lógicamente (soft delete).' });
+        res.status(200).json({ success: true });
     } catch (error) {
         apiLogger.error(`Error en cancelAccount: ${error.message}`, { stack: error.stack });
-        res.status(500).json({ success: false, error: 'Error al cancelar la cuenta.' });
+        res.status(500).json({ success: false, error: 'error_interno' });
     }
 };
 
@@ -642,15 +631,15 @@ const getProfile = async (req, res) => {
     try {
         const userId = getUserIdFromTokenPayload(req.user);
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
         if (!isValidObjectId(userId)) {
-            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
 
         const user = await User.findById(userId);
         if (!user || user.status !== 'active') {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         return res.status(200).json({
@@ -663,7 +652,7 @@ const getProfile = async (req, res) => {
         });
     } catch (error) {
         apiLogger.error(`Error en getProfile: ${error.message}`, { stack: error.stack });
-        return res.status(500).json({ success: false, error: 'Error al obtener perfil.' });
+        return res.status(500).json({ success: false, error: 'error_interno' });
     }
 };
 
@@ -677,32 +666,32 @@ const updateProfile = async (req, res) => {
         const { username, email } = req.body || {};
 
         if (typeof username === 'undefined' && typeof email === 'undefined') {
-            return res.status(400).json({ success: false, error: 'Debes enviar al menos un campo para actualizar.' });
+            return res.status(400).json({ success: false, error: 'campos_requeridos' });
         }
 
         const userId = getUserIdFromTokenPayload(req.user);
         if (!userId) {
-            return res.status(401).json({ success: false, error: 'Token inválido: no contiene identificador de usuario.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
         if (!isValidObjectId(userId)) {
-            return res.status(401).json({ success: false, error: 'Token inválido: identificador de usuario malformado.' });
+            return res.status(401).json({ success: false, error: 'token_invalido' });
         }
 
         const user = await User.findById(userId);
         if (!user || user.status !== 'active') {
-            return res.status(404).json({ success: false, error: 'Usuario no encontrado o inactivo.' });
+            return res.status(404).json({ success: false, error: 'usuario_no_encontrado' });
         }
 
         if (typeof username !== 'undefined') {
             const sanitizedUsername = String(username).trim();
             if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
-                return res.status(400).json({ success: false, error: 'El username debe tener entre 3 y 30 caracteres.' });
+                return res.status(400).json({ success: false, error: 'username_invalido' });
             }
 
             if (sanitizedUsername !== user.username) {
                 const usernameExists = await User.findOne({ username: sanitizedUsername, _id: { $ne: user._id } });
                 if (usernameExists) {
-                    return res.status(409).json({ success: false, error: 'El nombre de usuario ya está en uso.' });
+                    return res.status(409).json({ success: false, error: 'username_en_uso' });
                 }
             }
 
@@ -712,13 +701,13 @@ const updateProfile = async (req, res) => {
         if (typeof email !== 'undefined') {
             const sanitizedEmail = String(email).trim().toLowerCase();
             if (!isValidEmail(sanitizedEmail)) {
-                return res.status(400).json({ success: false, error: 'Email inválido.' });
+                return res.status(400).json({ success: false, error: 'email_invalido' });
             }
 
             if (sanitizedEmail !== user.email) {
                 const emailExists = await User.findOne({ email: sanitizedEmail, _id: { $ne: user._id } });
                 if (emailExists) {
-                    return res.status(409).json({ success: false, error: 'El correo ya está en uso.' });
+                    return res.status(409).json({ success: false, error: 'email_en_uso' });
                 }
             }
 
@@ -734,14 +723,10 @@ const updateProfile = async (req, res) => {
             timestamp: new Date().toISOString()
         });
 
-        return res.status(200).json({
-            success: true,
-            message: 'Perfil actualizado correctamente.',
-            user: buildUserPayload(user)
-        });
+        return res.status(200).json({ success: true, user: buildUserPayload(user) });
     } catch (error) {
         apiLogger.error(`Error en updateProfile: ${error.message}`, { stack: error.stack });
-        return res.status(500).json({ success: false, error: 'Error al actualizar perfil.' });
+        return res.status(500).json({ success: false, error: 'error_interno' });
     }
 };
 
