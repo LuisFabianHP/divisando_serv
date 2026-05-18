@@ -22,15 +22,14 @@ const generateRefreshToken = (id) => {
 /**
  * Valida un Refresh Token.
  * @param {string} token - Refresh Token recibido.
- * @returns {Object} - Payload decodificado si es válido.
- * @throws {Error} - Lanza error si el token no es válido o expiró.
+ * @returns {Object|null} - Payload decodificado si es válido, null si no lo es.
  */
 const validateRefreshToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
     apiLogger.warn('Refresh Token inválido o expirado', { error: error.message });
-    throw new Error('Refresh Token inválido o expirado.');
+    return null;
   }
 };
 
