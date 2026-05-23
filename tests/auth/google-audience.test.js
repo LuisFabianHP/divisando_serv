@@ -129,6 +129,6 @@ describe('AuthController loginWithGoogle audience validation', () => {
     await controller.loginWithGoogle(req, res, jest.fn());
 
     expect(res.status).toHaveBeenCalledWith(401);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Token de Google inválido.' });
+    expect(res.json).toHaveBeenCalledWith({ success: false, error: 'token_google_invalido' });
   });
 });
