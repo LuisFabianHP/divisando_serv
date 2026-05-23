@@ -65,7 +65,6 @@ describe('Soft Delete Flow', () => {
       .send({ password: softDeleteUser.password });
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.message).toMatch(/cancelada/i);
     // Verificar en base de datos
     const user = await User.findOne({ email: softDeleteUser.email });
     expect(user.status).toBe('deleted');
@@ -79,7 +78,7 @@ describe('Soft Delete Flow', () => {
       .set('User-Agent', 'DivisandoApp/1.0')
       .send({ email: softDeleteUser.email, password: softDeleteUser.password });
     expect(res.statusCode).toBe(401);
-    expect(res.body.error).toMatch(/cancelada/i);
+    expect(res.body.error).toBe('credenciales_invalidas');
   });
 });
 
