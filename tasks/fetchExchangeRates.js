@@ -24,10 +24,20 @@ const RECENT_MINUTES = Number(
   process.env.EXCHANGE_RATE_RECENT_MINUTES || (Number(process.env.EXCHANGE_RATE_RECENT_HOURS || '1') * 60)
 );
 const RATE_ALERT_MIN_CHANGE_PERCENT = Number(process.env.RATE_ALERT_MIN_CHANGE_PERCENT || '2');
+const RATE_ALERTS_ENABLED = String(process.env.RATE_ALERTS_ENABLED || 'true').toLowerCase() === 'true';
 
 // Estado de ejecución del cron
 let exchangeRatesRunning = false;
 let exchangeRatesTask = null;
+let rateAlertWritesEnabled = RATE_ALERTS_ENABLED;
+
+/**
+ * Detecta errores de permisos al insertar alertas de cambio.
+ */
+const isRateAlertInsertPermissionError = (error) => {
+  if (!error || !error.message) return false;
+  return /not allowed to do action \[insert\] on \[[^\]]*rateChangeAlerts\]/i.test(error.message);
+};
 
 /**
  * Parsea lista de monedas desde variable de entorno.
@@ -96,6 +106,10 @@ const getRateMap = (rates = []) => {
  */
 const detectAndStoreRateChanges = async (baseCurrency, currentRates, sourceUpdatedAt) => {
   try {
+    if (!rateAlertWritesEnabled) {
+      return;
+    }
+
     const previousDoc = await ExchangeRate.findOne({ base_currency: baseCurrency })
       .sort({ createdAt: -1 })
       .select('rates')
@@ -142,6 +156,15 @@ const detectAndStoreRateChanges = async (baseCurrency, currentRates, sourceUpdat
       taskLogger.info(`Alertas de cambio guardadas para ${baseCurrency}: ${alertsToInsert.length}`);
     }
   } catch (error) {
+    if (isRateAlertInsertPermissionError(error)) {
+      rateAlertWritesEnabled = false;
+      taskLogger.warn(
+        'Sin permisos de insert en rateChangeAlerts. Se desactiva temporalmente el guardado de alertas para evitar ruido en logs. '
+        + 'Revisa roles MongoDB (readWrite sobre divisandoDB) o define RATE_ALERTS_ENABLED=false.'
+      );
+      return;
+    }
+
     taskLogger.error(`Error detectando cambios de tasa para ${baseCurrency}: ${error.message}`);
   }
 };
