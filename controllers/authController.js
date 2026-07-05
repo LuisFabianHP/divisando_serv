@@ -34,6 +34,8 @@ const buildUserPayload = (user) => ({
 });
 
 const isValidEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
+const normalizeFullName = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+const isValidFullName = (value) => /^[A-Za-zÁÉÍÓÚáéíóúÑñ]+(?:\s+[A-Za-zÁÉÍÓÚáéíóúÑñ]+)+$/.test(value);
 const getUserIdFromTokenPayload = (payload = {}) => payload.id || payload.userId || payload._id || null;
 const isValidObjectId = (value) => Boolean(value) && mongoose.Types.ObjectId.isValid(String(value));
 const activeOrLegacyStatusFilter = {
@@ -46,17 +48,36 @@ const activeOrLegacyStatusFilter = {
 const register = async (req, res, next) => {
     try {
         const { username, email, password } = req.body;
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const normalizedUsername = normalizeFullName(username);
+
+        if (!normalizedUsername) {
+            return res.status(400).json({ success: false, error: 'username_requerido' });
+        }
+
+        if (!isValidFullName(normalizedUsername)) {
+            return res.status(400).json({ success: false, error: 'username_invalido' });
+        }
+
+        if (!isValidEmail(normalizedEmail)) {
+            return res.status(400).json({ success: false, error: 'email_invalido' });
+        }
+
+        const usernameExists = await User.findOne({ username: normalizedUsername });
+        if (usernameExists) {
+            return res.status(409).json({ success: false, error: 'username_en_uso' });
+        }
 
         // Verificar si el usuario o correo ya existe
-        const userExists = await User.findOne({ email });
+        const userExists = await User.findOne({ email: normalizedEmail });
         if (userExists) {
             return res.status(400).json({ success: false, error: 'usuario_ya_registrado' });
         }
 
         // Crear nuevo usuario
         const user = await User.create({
-            username,
-            email,
+            username: normalizedUsername,
+            email: normalizedEmail,
             password,
             provider: 'local',
             refreshToken: ''
@@ -64,7 +85,7 @@ const register = async (req, res, next) => {
 
         try {
             // Generar código de verificación
-            await generateVerificationCode(user._id, email);
+            await generateVerificationCode(user._id, normalizedEmail);
         } catch (mailError) {
             // Si falla el envío de correo, revertir creación para permitir reintento limpio.
             await VerificationCode.deleteMany({ userId: user._id });
@@ -683,8 +704,8 @@ const updateProfile = async (req, res) => {
         }
 
         if (typeof username !== 'undefined') {
-            const sanitizedUsername = String(username).trim();
-            if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
+            const sanitizedUsername = normalizeFullName(username);
+            if (sanitizedUsername.length < 3 || sanitizedUsername.length > 60 || !isValidFullName(sanitizedUsername)) {
                 return res.status(400).json({ success: false, error: 'username_invalido' });
             }
 
