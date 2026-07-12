@@ -159,6 +159,18 @@ Restablece la contraseña con el código verificado.
 - Body: `{ email, code, newPassword }`
 - Response: `{ success: true, message }`
 
+#### `GET /auth/profile`
+Obtiene el perfil del usuario autenticado.
+- Requiere: `Authorization: Bearer <accessToken>`
+
+#### `PUT /auth/profile`
+Actualiza datos del perfil del usuario autenticado.
+- Requiere: `Authorization: Bearer <accessToken>`
+
+#### `DELETE /auth/account`
+Cancela la cuenta del usuario autenticado.
+- Requiere: `Authorization: Bearer <accessToken>`
+
 ### **Monedas y Tasas de Cambio**
 #### `GET /exchange/currencies`
 Devuelve la lista de monedas disponibles.
@@ -169,6 +181,12 @@ Devuelve el valor actual y el anterior de una moneda, con estado `up` o `dw`.
 #### `GET /exchange/:currency`
 Devuelve tasas para una moneda base.
 
+#### `POST /exchange/refresh`
+Dispara una actualizacion manual de tasas de cambio.
+
+#### `GET /exchange/rate-changes`
+Devuelve alertas y cambios recientes de tasas de cambio.
+
 ### **Salud del servicio**
 #### `GET /health`
 Verifica que la API esté activa. **Público** (sin autenticación).
@@ -176,6 +194,13 @@ Verifica que la API esté activa. **Público** (sin autenticación).
 #### `GET /health/database`
 Verifica el estado de MongoDB (conectividad, latencia y circuit breaker).
 **Protegido con API key** en `x-api-key`.
+
+#### `GET /favicon.ico`
+Endpoint tecnico para solicitudes automaticas del navegador. Responde `204 No Content`.
+
+### **Operacion tecnica**
+#### `GET /script/get-ip`
+Endpoint tecnico para consultar la IP publica del servidor.
 
 **Ejemplo:**
 ```bash
