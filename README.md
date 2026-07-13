@@ -128,14 +128,14 @@ Autentica con Apple Sign-In (mobile). Valida identityToken localmente.
 - Response: `{ success: true, refreshToken, expiresAt }`
 
 #### `POST /auth/refresh`
-Renueva el Access Token usando un Refresh Token válido.
+Renueva el Refresh Token de sesión usando un `refreshToken` válido.
 - Body: `{ refreshToken }`
-- Response: `{ success: true, accessToken, expiresIn }`
+- Response: `{ success: true, refreshToken, expiresAt, user }`
 
 #### `POST /auth/logout`
 Cierra la sesión del usuario invalidando el Refresh Token.
-- Body: `{ userId }`
-- Response: `{ success: true, message }`
+- Body: `{ refreshToken }`
+- Response: `{ success: true }`
 
 #### `POST /auth/code/verification`
 Verifica un código de 6 dígitos (para registro o recuperación de contraseña).
@@ -161,15 +161,15 @@ Restablece la contraseña con el código verificado.
 
 #### `GET /auth/profile`
 Obtiene el perfil del usuario autenticado.
-- Requiere: `Authorization: Bearer <accessToken>`
+- Requiere: `Authorization: Bearer <refreshToken vigente>`
 
 #### `PUT /auth/profile`
 Actualiza datos del perfil del usuario autenticado.
-- Requiere: `Authorization: Bearer <accessToken>`
+- Requiere: `Authorization: Bearer <refreshToken vigente>`
 
 #### `DELETE /auth/account`
 Cancela la cuenta del usuario autenticado.
-- Requiere: `Authorization: Bearer <accessToken>`
+- Requiere: `Authorization: Bearer <refreshToken vigente>`
 
 ### **Monedas y Tasas de Cambio**
 #### `GET /exchange/currencies`
@@ -186,6 +186,8 @@ Dispara una actualizacion manual de tasas de cambio.
 
 #### `GET /exchange/rate-changes`
 Devuelve alertas y cambios recientes de tasas de cambio.
+- Query obligatoria: `baseCurrency`, `targetCurrency`
+- Query opcional: `limit` (1-100), `minChangePercent` (umbral absoluto)
 
 ### **Salud del servicio**
 #### `GET /health`
@@ -201,6 +203,7 @@ Endpoint tecnico para solicitudes automaticas del navegador. Responde `204 No Co
 ### **Operacion tecnica**
 #### `GET /script/get-ip`
 Endpoint tecnico para consultar la IP publica del servidor.
+- Requiere: `x-api-key` y `User-Agent` válido.
 
 **Ejemplo:**
 ```bash
