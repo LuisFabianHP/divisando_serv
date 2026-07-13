@@ -43,6 +43,9 @@ app.use('/exchange', validateApiKey, validateUserAgent, apiRateLimiter, exchange
 app.use('/auth', validateApiKey, validateUserAgent, authRoutes);
 app.use('/script', validateApiKey, validateUserAgent, getSiteIP);
 
+// Omitir /favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Manejo de rutas no encontradas
 app.use((req, res, next) => {
   const error = new Error(`Ruta no encontrada: ${req.originalUrl}`);
@@ -50,9 +53,6 @@ app.use((req, res, next) => {
   error.userMessage = 'La ruta solicitada no existe.';
   next(error);
 });
-
-// Omitir /favicon.ico
-app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Middlewares manejo de errores
 app.use(errorHandler);
