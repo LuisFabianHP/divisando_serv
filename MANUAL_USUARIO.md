@@ -76,10 +76,15 @@ Exchange:
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
 - `POST /exchange/refresh` (mantenimiento)
+- `GET /exchange/rate-changes`
 
 Health:
 - `GET /health`
 - `GET /health/database`
+- `GET /favicon.ico` (tecnico, respuesta `204 No Content`)
+
+Operacion tecnica:
+- `GET /script/get-ip`
 
 ---
 
