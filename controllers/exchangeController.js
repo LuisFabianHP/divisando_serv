@@ -279,35 +279,101 @@ const triggerExchangeRatesRefresh = async (req, res, next) => {
   }
 };
 
+const buildSyntheticRateChangeAlert = async (base, target) => {
+  const latestBaseDoc = await ExchangeRate.findOne({ base_currency: base }).sort({ updatedAt: -1 }).lean();
+  if (!latestBaseDoc) {
+    return null;
+  }
+
+  const currentRateEntry = latestBaseDoc.rates?.find((rate) => rate.currency === target);
+  if (!currentRateEntry) {
+    return null;
+  }
+
+  const previousBaseDoc = await ExchangeRate.findOne({
+    base_currency: base,
+    updatedAt: { $lt: latestBaseDoc.updatedAt },
+    'rates.currency': target,
+  })
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  if (!previousBaseDoc) {
+    return null;
+  }
+
+  const previousRateEntry = previousBaseDoc.rates?.find((rate) => rate.currency === target);
+  if (!previousRateEntry || previousRateEntry.value === 0) {
+    return null;
+  }
+
+  const previousRate = Number(previousRateEntry.value);
+  const currentRate = Number(currentRateEntry.value);
+  const diff = currentRate - previousRate;
+  const changePercent = (diff / previousRate) * 100;
+
+  return {
+    baseCurrency: base,
+    targetCurrency: target,
+    previousRate,
+    currentRate,
+    changePercent,
+    direction: diff >= 0 ? 'up' : 'dw',
+    sourceUpdatedAt: latestBaseDoc.updatedAt,
+    createdAt: latestBaseDoc.updatedAt,
+    updatedAt: latestBaseDoc.updatedAt,
+    synthetic: true,
+  };
+};
+
 /**
  * Obtiene alertas recientes de cambio para un par base/target.
  */
 const getRateChangeAlerts = async (req, res, next) => {
   try {
+    const hasRates = await ensureExchangeRatesAvailable();
+    if (!hasRates) {
+      const error = new Error('exchangeRates vacia al consultar getRateChangeAlerts.');
+      error.status = 503;
+      error.userMessage = EMPTY_COLLECTION_USER_MESSAGE;
+      throw error;
+    }
+
     const { base, target } = validateCurrencies(req.query.baseCurrency, req.query.targetCurrency);
-    const minChangePercent = Number(req.query.minChangePercent || '0');
-    const limit = Math.min(Math.max(Number(req.query.limit || '20'), 1), 100);
+    const rawMinChangePercent = Number(req.query.minChangePercent || '0');
+    const minChangePercent = Number.isFinite(rawMinChangePercent) ? Math.abs(rawMinChangePercent) : 0;
+    const rawLimit = Number(req.query.limit || '20');
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 100) : 20;
 
     const query = {
       baseCurrency: base,
       targetCurrency: target,
     };
 
-    if (Number.isFinite(minChangePercent) && minChangePercent > 0) {
-      query.changePercent = {
-        $gte: -Math.abs(minChangePercent),
-        $lte: Math.abs(minChangePercent),
-      };
-      delete query.changePercent;
+    if (minChangePercent > 0) {
       query.$expr = {
-        $gte: [{ $abs: '$changePercent' }, Math.abs(minChangePercent)],
+        $gte: [{ $abs: '$changePercent' }, minChangePercent],
       };
     }
 
-    const alerts = await RateChangeAlert.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    let alerts = [];
+    try {
+      alerts = await RateChangeAlert.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+    } catch (alertsError) {
+      apiLogger.warn(`Fallo consulta rateChangeAlerts, usando fallback: ${alertsError.message}`);
+    }
+
+    if (!alerts.length) {
+      const syntheticAlert = await buildSyntheticRateChangeAlert(base, target);
+      if (syntheticAlert) {
+        if (minChangePercent <= 0 || Math.abs(syntheticAlert.changePercent) >= minChangePercent) {
+          alerts = [syntheticAlert];
+        }
+      }
+    }
 
     const latest = alerts[0] || null;
 

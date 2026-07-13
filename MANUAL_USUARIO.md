@@ -29,7 +29,7 @@ Guia rapida para consumir la API de Divisando desde Postman, curl o la app.
 ```
 x-api-key: <API_KEY>
 User-Agent: DivisandoApp/1.0
-Authorization: Bearer <JWT>
+Authorization: Bearer <refreshToken_vigente>
 ```
 
 ---
@@ -76,10 +76,15 @@ Exchange:
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
 - `POST /exchange/refresh` (mantenimiento)
+- `GET /exchange/rate-changes`
 
 Health:
 - `GET /health`
 - `GET /health/database`
+- `GET /favicon.ico` (tecnico, respuesta `204 No Content`)
+
+Operacion tecnica:
+- `GET /script/get-ip`
 
 ---
 
@@ -203,7 +208,7 @@ curl -X POST "http://localhost:5000/auth/google" \
 curl -X GET "http://localhost:5000/auth/profile" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>"
+  -H "Authorization: Bearer <refreshToken_vigente>"
 ```
 ```json
 { "success": true, "user": { "id": "...", "username": "...", "email": "...", "provider": "local", "isVerified": true, "status": "active" } }
@@ -215,7 +220,7 @@ curl -X PUT "http://localhost:5000/auth/profile" \
   -H "Content-Type: application/json" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>" \
+  -H "Authorization: Bearer <refreshToken_vigente>" \
   -d "{\"username\":\"nuevo_nombre\"}"
 ```
 ```json
@@ -228,7 +233,7 @@ curl -X DELETE "http://localhost:5000/auth/account" \
   -H "Content-Type: application/json" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>" \
+  -H "Authorization: Bearer <refreshToken_vigente>" \
   -d "{\"password\":\"123456\"}"
 ```
 ```json
@@ -240,7 +245,7 @@ curl -X DELETE "http://localhost:5000/auth/account" \
 curl -X GET "http://localhost:5000/exchange/compare?baseCurrency=USD&targetCurrency=MXN" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>"
+  -H "Authorization: Bearer <refreshToken_vigente>"
 ```
 ```json
 { "baseCurrency": "USD", "targetCurrency": "MXN", "currentRate": 17.12 }
@@ -251,7 +256,7 @@ curl -X GET "http://localhost:5000/exchange/compare?baseCurrency=USD&targetCurre
 curl -X GET "http://localhost:5000/exchange/currencies" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>"
+  -H "Authorization: Bearer <refreshToken_vigente>"
 ```
 ```json
 { "currencies": ["USD", "MXN", "EUR", "CAD"], "updatedAt": "2026-02-10T02:10:00.000Z" }
@@ -262,7 +267,7 @@ curl -X GET "http://localhost:5000/exchange/currencies" \
 curl -X GET "http://localhost:5000/exchange/USD" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>"
+  -H "Authorization: Bearer <refreshToken_vigente>"
 ```
 ```json
 { "base_currency": "USD", "rates": [{ "currency": "MXN", "value": 17.10 }, { "currency": "EUR", "value": 0.92 }], "last_updated": "2026-02-10T02:10:00.000Z" }
@@ -273,11 +278,26 @@ curl -X GET "http://localhost:5000/exchange/USD" \
 curl -X POST "http://localhost:5000/exchange/refresh" \
   -H "x-api-key: <API_KEY>" \
   -H "User-Agent: DivisandoApp/1.0" \
-  -H "Authorization: Bearer <JWT>"
+  -H "Authorization: Bearer <refreshToken_vigente>"
 ```
 ```json
 { "success": true }
 ```
+
+### GET /exchange/rate-changes
+```bash
+curl -X GET "http://localhost:5000/exchange/rate-changes?baseCurrency=USD&targetCurrency=MXN&limit=5" \
+  -H "x-api-key: <API_KEY>" \
+  -H "User-Agent: DivisandoApp/1.0" \
+  -H "Authorization: Bearer <refreshToken_vigente>"
+```
+```json
+{ "success": true, "baseCurrency": "USD", "targetCurrency": "MXN", "alert": false, "count": 0, "alerts": [] }
+```
+
+Notas:
+- `baseCurrency` y `targetCurrency` son obligatorios.
+- `limit` (1 a 100) y `minChangePercent` son opcionales.
 
 ### GET /health
 ```bash
@@ -296,6 +316,24 @@ curl -X GET "http://localhost:5000/health/database" \
 { "status": "healthy", "database": { "connected": true, "host": "<host>", "latency": "5ms", "circuitBreaker": "CLOSED", "consecutiveFailures": 0 }, "timestamp": "2026-02-10T02:10:00.000Z" }
 ```
 
+### GET /script/get-ip
+```bash
+curl -X GET "http://localhost:5000/script/get-ip" \
+  -H "x-api-key: <API_KEY>" \
+  -H "User-Agent: DivisandoApp/1.0"
+```
+```json
+{ "ip": "<public_ip>" }
+```
+
+### GET /favicon.ico
+```bash
+curl -i -X GET "http://localhost:5000/favicon.ico"
+```
+```json
+HTTP/1.1 204 No Content
+```
+
 Compatibilidad:
 - `/api/health` y `/api/health/database` se mantienen disponibles.
 
@@ -306,6 +344,7 @@ Compatibilidad:
 | Endpoint | HTTP | Codigo de error |
 |---|---|---|
 | `POST /auth/register` | 400 | `usuario_ya_registrado` |
+| `POST /auth/register` | 409 | `username_en_uso` |
 | `POST /auth/register` | 503 | `error_envio_correo` |
 | `POST /auth/register` | 500 | `error_interno` |
 | `POST /auth/code/verification` | 404 | `usuario_no_encontrado` |
@@ -325,6 +364,7 @@ Compatibilidad:
 | `POST /auth/password/reset` | 400 | `codigo_invalido_o_expirado` |
 | `POST /auth/google` | 400 | `idtoken_requerido` |
 | `POST /auth/google` | 401 | `token_google_invalido` |
+| `POST /auth/apple` | 410 | `Login con Apple deshabilitado temporalmente.` |
 | `GET  /auth/profile` | 401 | `token_invalido` |
 | `GET  /auth/profile` | 404 | `usuario_no_encontrado` |
 | `GET  /auth/profile` | 500 | `error_interno` |
