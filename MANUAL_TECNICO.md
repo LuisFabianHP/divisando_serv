@@ -394,8 +394,11 @@ OAuth:
 - `GET /exchange/currencies`
 - `GET /exchange/compare?baseCurrency=USD&targetCurrency=MXN`
 - `GET /exchange/:currency`
+- `GET /exchange/rate-changes`
 - `GET /health` (publico)
 - `GET /health/database` (x-api-key requerido)
+- `GET /favicon.ico` (tecnico, respuesta `204 No Content`)
+- `GET /script/get-ip` (tecnico, requiere x-api-key y User-Agent valido)
 
 Ejemplos de uso y respuestas: ver Manual de Usuario.
 
