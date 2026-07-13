@@ -314,7 +314,8 @@ Endpoint protegido para disparar actualización bajo demanda:
 POST /exchange/refresh
 ```
 
-**Requiere**: `x-api-key` + `Authorization: Bearer <JWT>` + `User-Agent` válido
+**Requiere**: `x-api-key` + `Authorization: Bearer <refreshToken_vigente>` + `User-Agent` válido
+> Nota: para rutas protegidas por `validateJWT`, el backend valida el token enviado en `Authorization: Bearer <token>`. En los flujos actuales, este token corresponde al `refreshToken` vigente emitido por login/refresh.
 
 **Respuesta esperada (202):**
 ```json
@@ -348,6 +349,10 @@ Flujo principal:
 - `POST /auth/login` => emite refresh token.
 - `POST /auth/refresh` => renueva refresh token.
 - `POST /auth/logout` => revoca refresh token.
+
+Uso operativo para endpoints protegidos:
+- Header esperado: `Authorization: Bearer <refreshToken_vigente>`.
+- Si el token fue rotado por `/auth/refresh`, el token anterior queda invalidado para operaciones posteriores como `/auth/logout`.
 
 OAuth:
 - Google (mobile): `/auth/google`
@@ -399,6 +404,11 @@ OAuth:
 - `GET /health/database` (x-api-key requerido)
 - `GET /favicon.ico` (tecnico, respuesta `204 No Content`)
 - `GET /script/get-ip` (tecnico, requiere x-api-key y User-Agent valido)
+
+Notas de uso para evitar errores frecuentes:
+- `GET /exchange/rate-changes` requiere `baseCurrency` y `targetCurrency` en query.
+- `limit` (1-100) y `minChangePercent` son opcionales en `rate-changes`.
+- `GET /favicon.ico` es tecnico y responde `204 No Content`.
 
 Ejemplos de uso y respuestas: ver Manual de Usuario.
 
