@@ -1,6 +1,7 @@
 ﻿const { connectDB, closeDB } = require('../../config/database');
 const mongoose = require('mongoose');
 const ExchangeRate = require('../../models/ExchangeRate');
+const CurrentExchangeRate = require('../../models/CurrentExchangeRate');
 const AvailableCurrencies = require('../../models/AvailableCurrencies');
 const User = require('../../models/User');
 const VerificationCode = require('../../models/VerificationCode');
@@ -9,6 +10,7 @@ const VerificationCode = require('../../models/VerificationCode');
 process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.API_KEY = process.env.API_KEY || 'test-api-key';
 process.env.API_CROS_DOMAINS = process.env.API_CROS_DOMAINS || 'http://localhost';
+process.env.EXCHANGE_RATE_STALE_MINUTES = process.env.EXCHANGE_RATE_STALE_MINUTES || '99999999';
 
 // Conectar a la base de datos antes de todas las pruebas
 beforeAll(async () => {
@@ -49,6 +51,7 @@ afterEach(async () => {
   // Limpiar solo las colecciones usadas por las pruebas para evitar errores de permisos
   await Promise.all([
     ExchangeRate.deleteMany({}),
+    CurrentExchangeRate.deleteMany({}),
     AvailableCurrencies.deleteMany({}),
     User.deleteMany({ email: /@test\.com$/ }),
     VerificationCode.deleteMany({})
