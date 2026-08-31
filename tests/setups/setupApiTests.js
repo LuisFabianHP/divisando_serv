@@ -1,7 +1,6 @@
 ﻿const { connectDB, closeDB } = require('../../config/database');
 const mongoose = require('mongoose');
 const ExchangeRate = require('../../models/ExchangeRate');
-const CurrentExchangeRate = require('../../models/CurrentExchangeRate');
 const AvailableCurrencies = require('../../models/AvailableCurrencies');
 const User = require('../../models/User');
 const VerificationCode = require('../../models/VerificationCode');
@@ -51,7 +50,6 @@ afterEach(async () => {
   // Limpiar solo las colecciones usadas por las pruebas para evitar errores de permisos
   await Promise.all([
     ExchangeRate.deleteMany({}),
-    CurrentExchangeRate.deleteMany({}),
     AvailableCurrencies.deleteMany({}),
     User.deleteMany({ email: /@test\.com$/ }),
     VerificationCode.deleteMany({})
