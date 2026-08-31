@@ -1,5 +1,4 @@
 const ExchangeRate = require('@models/ExchangeRate');
-const CurrentExchangeRate = require('@models/CurrentExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const RateChangeAlert = require('@models/RateChangeAlert');
 const { apiLogger } = require('@utils/logger');
@@ -12,6 +11,13 @@ const STALE_MINUTES_THRESHOLD = Number(process.env.EXCHANGE_RATE_STALE_MINUTES |
 let exchangeRatesWasEmpty = false;
 let exchangeRatesRecoveryInProgress = false;
 let exchangeRatesStaleRefreshInProgress = false;
+
+const getCurrentExchangeRate = async (baseCurrency) => {
+  const currentRates = await AvailableCurrencies.findOne({})
+    .select('currentRates')
+    .lean();
+  return currentRates?.currentRates?.[baseCurrency] || null;
+};
 
 const restoreCurrentExchangeRatesFromHistory = async () => {
   const latestRates = await ExchangeRate.aggregate([
@@ -31,36 +37,31 @@ const restoreCurrentExchangeRatesFromHistory = async () => {
     return false;
   }
 
-  await CurrentExchangeRate.bulkWrite(
-    latestRates.map((rate) => ({
-      updateOne: {
-        filter: { base_currency: rate._id },
-        update: {
-          $set: {
-            base_currency: rate._id,
-            date: rate.date,
-            rates: rate.rates,
-            createdAt: rate.createdAt,
-            updatedAt: rate.updatedAt,
-          },
-        },
-        upsert: true,
-        timestamps: false,
-      },
-    }))
+  const currentRates = Object.fromEntries(
+    latestRates.map((rate) => [rate._id, {
+      date: rate.date,
+      rates: rate.rates,
+      updatedAt: rate.updatedAt,
+    }])
   );
+
+  await AvailableCurrencies.updateOne({}, { $set: { currentRates } }, { upsert: true });
 
   apiLogger.info(`Tasas vigentes restauradas desde historial: ${latestRates.length} monedas base.`);
   return true;
 };
 
 const triggerStaleRefreshIfNeeded = async () => {
-  const latestRate = await CurrentExchangeRate.findOne({}).sort({ updatedAt: -1 }).select('updatedAt').lean();
-  if (!latestRate?.updatedAt) {
+  const currentRates = await AvailableCurrencies.findOne({}).select('currentRates').lean();
+  const latestUpdatedAt = Object.values(currentRates?.currentRates || {})
+    .map((rate) => rate.updatedAt)
+    .filter(Boolean)
+    .sort((left, right) => new Date(right) - new Date(left))[0];
+  if (!latestUpdatedAt) {
     return;
   }
 
-  const ageMs = Date.now() - new Date(latestRate.updatedAt).getTime();
+  const ageMs = Date.now() - new Date(latestUpdatedAt).getTime();
   const staleMs = STALE_MINUTES_THRESHOLD * 60 * 1000;
   const isStale = Number.isFinite(staleMs) && staleMs > 0 && ageMs > staleMs;
 
@@ -83,7 +84,7 @@ const triggerStaleRefreshIfNeeded = async () => {
 };
 
 const ensureExchangeRatesAvailable = async () => {
-  let hasAnyRate = await CurrentExchangeRate.exists({});
+  let hasAnyRate = await AvailableCurrencies.exists({ 'currentRates.USD': { $exists: true } });
   if (!hasAnyRate) {
     hasAnyRate = await restoreCurrentExchangeRatesFromHistory();
   }
@@ -105,7 +106,7 @@ const ensureExchangeRatesAvailable = async () => {
 
     updateExchangeRates()
       .then(async () => {
-        const recovered = await CurrentExchangeRate.exists({});
+        const recovered = await AvailableCurrencies.exists({ 'currentRates.USD': { $exists: true } });
         if (recovered) {
           exchangeRatesWasEmpty = false;
           apiLogger.warn('exchangeRates restablecida correctamente despues de la sincronizacion automatica.');
@@ -159,7 +160,7 @@ const getExchangeRates = async (req, res, next) => {
     }
 
     const baseCurrency = currency.toUpperCase();
-    const exchangeRate = await CurrentExchangeRate.findOne({ base_currency: baseCurrency }).exec();
+    const exchangeRate = await getCurrentExchangeRate(baseCurrency);
 
     // Validar si se encontró un registro
     if (!exchangeRate) {
@@ -171,7 +172,7 @@ const getExchangeRates = async (req, res, next) => {
 
     apiLogger.info(`Tasas de cambio obtenidas para: ${baseCurrency}`);
     return res.status(200).json({
-      base_currency: exchangeRate.base_currency,
+      base_currency: baseCurrency,
       rates: exchangeRate.rates,
       last_updated: exchangeRate.updatedAt,
     });
@@ -200,7 +201,7 @@ const getComparisonData = async (req, res, next) => {
     const pollIntervalMinutes = Number(process.env.APP_RATE_POLL_INTERVAL_MINUTES || '30');
 
     // Obtener el registro más reciente
-    const baseData = await CurrentExchangeRate.findOne({ base_currency: base }).exec();
+    const baseData = await getCurrentExchangeRate(base);
 
     if (!baseData) {
       const error = new Error(`No se encontraron datos para la moneda base: ${base}`);
@@ -326,7 +327,7 @@ const triggerExchangeRatesRefresh = async (req, res, next) => {
 };
 
 const buildSyntheticRateChangeAlert = async (base, target) => {
-  const latestBaseDoc = await CurrentExchangeRate.findOne({ base_currency: base }).lean();
+  const latestBaseDoc = await getCurrentExchangeRate(base);
   if (!latestBaseDoc) {
     return null;
   }
