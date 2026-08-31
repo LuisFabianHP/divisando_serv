@@ -4,7 +4,7 @@ const request = require('supertest');
 const app = require('../../app');
 const jwt = require('jsonwebtoken');
 const ExchangeRate = require('../../models/ExchangeRate');
-const AvailableCurrencies = require('../../models/AvailableCurrencies');
+const CurrentExchangeRate = require('../../models/CurrentExchangeRate');
 
 // Forzar User-Agent permitido para pruebas predecibles
 process.env.API_ALLOWED_USER_AGENTS = 'MiAplicacionMovil/1.0';
@@ -32,8 +32,7 @@ describe('Pruebas de la API', () => {
       .set('Authorization', `Bearer ${testToken}`)
       .expect(200);
 
-    const currentRates = await AvailableCurrencies.findOne({}).select('currentRates').lean();
-    expect(currentRates.currentRates.USD).toBeDefined();
+    expect(await CurrentExchangeRate.exists({ base_currency: 'USD' })).toBeTruthy();
     await ExchangeRate.deleteMany({});
 
     const response = await request(app)
