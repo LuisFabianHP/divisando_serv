@@ -200,12 +200,12 @@ Archivo: `config/database.js`
 
 ### Retención automática de tasas (TTL)
 Archivo: `models/ExchangeRate.js`
- - La colección `exchangeRates` implementa un índice TTL para eliminar automáticamente registros antiguos.
+ - La colección `exchangeRates` implementa un índice TTL para eliminar automáticamente registros históricos.
  - El tiempo de retención se configura mediante la variable `MONGO_TTL_SECONDS` (por defecto: 604800 segundos = 7 días).
  - Permite ajustar la caducidad de los datos según el entorno (desarrollo, producción, etc).
  - Cambia el valor en `.env` para modificar la retención.
  - Ejemplo: `MONGO_TTL_SECONDS=604800` (una semana).
- - El TTL se aplica solo a los documentos de tasas de cambio, no afecta otras colecciones.
+ - La colección `currentExchangeRates` conserva la última tasa por moneda base sin TTL para mantener disponibles las consultas actuales.
 
 ### Memory Monitor
 Archivo: `tasks/memoryMonitor.js`
