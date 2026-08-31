@@ -21,6 +21,8 @@ const restoreCurrentExchangeRatesFromHistory = async () => {
         _id: '$base_currency',
         date: { $first: '$date' },
         rates: { $first: '$rates' },
+        createdAt: { $first: '$createdAt' },
+        updatedAt: { $first: '$updatedAt' },
       },
     },
   ]);
@@ -38,9 +40,12 @@ const restoreCurrentExchangeRatesFromHistory = async () => {
             base_currency: rate._id,
             date: rate.date,
             rates: rate.rates,
+            createdAt: rate.createdAt,
+            updatedAt: rate.updatedAt,
           },
         },
         upsert: true,
+        timestamps: false,
       },
     }))
   );
