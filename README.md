@@ -326,10 +326,10 @@ Optimización de memoria y MongoDB:
 - `MONGO_TTL_SECONDS` - Tiempo de retención automática (en segundos) de los registros de tasas de cambio en la colección `exchangeRates` (default: 7776000, tres meses)
 
 ### Estrategia de retención e histórico
-- Los registros de ExchangeRate se eliminan automáticamente después de 90 días (TTL).
-- El índice compuesto base_currency + createdAt permite consultas eficientes por moneda y fecha.
-- Puedes ajustar el TTL cambiando la variable de entorno MONGO_TTL_SECONDS.
-- Esta estrategia mantiene la base limpia, optimiza el rendimiento y permite conservar un histórico útil sin exceder límites del plan free.
+- `currentExchangeRates` conserva un único registro vigente por moneda base y no tiene TTL; es la fuente de las consultas de tasa actual.
+- `exchangeRates` conserva el histórico con TTL y se usa para comparaciones y alertas de cambio.
+- Durante el primer acceso posterior al despliegue, las tasas vigentes se restauran desde el último histórico disponible si la colección vigente todavía no existe.
+- Puedes ajustar la retención del histórico con `MONGO_TTL_SECONDS` sin afectar la disponibilidad de la última tasa conocida.
 - `MEMORY_MONITOR_CRON` - Monitoreo de memoria (default: */5 * * * *)
 - `GC_CRON` - Garbage collection forzado (default: */30 * * * *)
 
