@@ -1,4 +1,5 @@
 const ExchangeRate = require('@models/ExchangeRate');
+const CurrentExchangeRate = require('@models/CurrentExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const RateChangeAlert = require('@models/RateChangeAlert');
 const { apiLogger } = require('@utils/logger');
@@ -12,8 +13,44 @@ let exchangeRatesWasEmpty = false;
 let exchangeRatesRecoveryInProgress = false;
 let exchangeRatesStaleRefreshInProgress = false;
 
+const restoreCurrentExchangeRatesFromHistory = async () => {
+  const latestRates = await ExchangeRate.aggregate([
+    { $sort: { base_currency: 1, updatedAt: -1 } },
+    {
+      $group: {
+        _id: '$base_currency',
+        date: { $first: '$date' },
+        rates: { $first: '$rates' },
+      },
+    },
+  ]);
+
+  if (latestRates.length === 0) {
+    return false;
+  }
+
+  await CurrentExchangeRate.bulkWrite(
+    latestRates.map((rate) => ({
+      updateOne: {
+        filter: { base_currency: rate._id },
+        update: {
+          $set: {
+            base_currency: rate._id,
+            date: rate.date,
+            rates: rate.rates,
+          },
+        },
+        upsert: true,
+      },
+    }))
+  );
+
+  apiLogger.info(`Tasas vigentes restauradas desde historial: ${latestRates.length} monedas base.`);
+  return true;
+};
+
 const triggerStaleRefreshIfNeeded = async () => {
-  const latestRate = await ExchangeRate.findOne({}).sort({ updatedAt: -1 }).select('updatedAt').lean();
+  const latestRate = await CurrentExchangeRate.findOne({}).sort({ updatedAt: -1 }).select('updatedAt').lean();
   if (!latestRate?.updatedAt) {
     return;
   }
@@ -41,7 +78,11 @@ const triggerStaleRefreshIfNeeded = async () => {
 };
 
 const ensureExchangeRatesAvailable = async () => {
-  const hasAnyRate = await ExchangeRate.exists({});
+  let hasAnyRate = await CurrentExchangeRate.exists({});
+  if (!hasAnyRate) {
+    hasAnyRate = await restoreCurrentExchangeRatesFromHistory();
+  }
+
   if (hasAnyRate) {
     await triggerStaleRefreshIfNeeded();
 
@@ -59,7 +100,7 @@ const ensureExchangeRatesAvailable = async () => {
 
     updateExchangeRates()
       .then(async () => {
-        const recovered = await ExchangeRate.exists({});
+        const recovered = await CurrentExchangeRate.exists({});
         if (recovered) {
           exchangeRatesWasEmpty = false;
           apiLogger.warn('exchangeRates restablecida correctamente despues de la sincronizacion automatica.');
@@ -113,7 +154,7 @@ const getExchangeRates = async (req, res, next) => {
     }
 
     const baseCurrency = currency.toUpperCase();
-    const exchangeRate = await ExchangeRate.findOne({ base_currency: baseCurrency }).sort({ updatedAt: -1 }).exec();
+    const exchangeRate = await CurrentExchangeRate.findOne({ base_currency: baseCurrency }).exec();
 
     // Validar si se encontró un registro
     if (!exchangeRate) {
@@ -154,7 +195,7 @@ const getComparisonData = async (req, res, next) => {
     const pollIntervalMinutes = Number(process.env.APP_RATE_POLL_INTERVAL_MINUTES || '30');
 
     // Obtener el registro más reciente
-    const baseData = await ExchangeRate.findOne({ base_currency: base }).sort({ updatedAt: -1 }).exec();
+    const baseData = await CurrentExchangeRate.findOne({ base_currency: base }).exec();
 
     if (!baseData) {
       const error = new Error(`No se encontraron datos para la moneda base: ${base}`);
@@ -280,7 +321,7 @@ const triggerExchangeRatesRefresh = async (req, res, next) => {
 };
 
 const buildSyntheticRateChangeAlert = async (base, target) => {
-  const latestBaseDoc = await ExchangeRate.findOne({ base_currency: base }).sort({ updatedAt: -1 }).lean();
+  const latestBaseDoc = await CurrentExchangeRate.findOne({ base_currency: base }).lean();
   if (!latestBaseDoc) {
     return null;
   }
