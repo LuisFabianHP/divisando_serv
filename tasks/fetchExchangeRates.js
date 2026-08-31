@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const axios = require('axios');
 const ExchangeRate = require('@models/ExchangeRate');
+const CurrentExchangeRate = require('@models/CurrentExchangeRate');
 const AvailableCurrencies = require('@models/AvailableCurrencies');
 const RateChangeAlert = require('@models/RateChangeAlert');
 const { taskLogger } = require('@utils/logger');
@@ -250,6 +251,17 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       date: sourceUpdatedAt,
     });
 
+    await CurrentExchangeRate.findOneAndUpdate(
+      { base_currency: baseCurrency },
+      {
+        $set: {
+          date: sourceUpdatedAt,
+          rates,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
     await AvailableCurrencies.updateOne(
       {},
       {
@@ -277,8 +289,7 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
  */
 async function updateCurrencyList() {
   try {
-    const currentRates = await AvailableCurrencies.findOne({}).select('currentRates').lean();
-    const currencies = Object.keys(currentRates?.currentRates || {});
+    const currencies = await CurrentExchangeRate.distinct('base_currency');
 
     await AvailableCurrencies.updateOne(
       {},
