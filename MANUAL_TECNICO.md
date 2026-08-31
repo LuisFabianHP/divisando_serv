@@ -205,7 +205,7 @@ Archivo: `models/ExchangeRate.js`
  - Permite ajustar la caducidad de los datos según el entorno (desarrollo, producción, etc).
  - Cambia el valor en `.env` para modificar la retención.
  - Ejemplo: `MONGO_TTL_SECONDS=604800` (una semana).
- - El campo `availableCurrencies.currentRates` conserva la última tasa por moneda base sin TTL para mantener disponibles las consultas actuales.
+ - La colección `currentExchangeRates` conserva la última tasa por moneda base sin TTL para mantener disponibles las consultas actuales.
 
 ### Memory Monitor
 Archivo: `tasks/memoryMonitor.js`
