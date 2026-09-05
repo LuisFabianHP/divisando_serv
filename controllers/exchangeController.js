@@ -265,15 +265,21 @@ const getComparisonData = async (req, res, next) => {
       }
     }
 
-    // Buscar el último valor anterior registrado para el mismo par.
-    // No filtramos por diferencia para poder mostrar comparación incluso si no hubo cambio.
+    // Buscar el último histórico del mismo par cuyo valor sea distinto al actual.
     const previousRateDoc = await ExchangeRate.findOne({
       base_currency: base,
       updatedAt: { $lt: baseData.updatedAt },
-      "rates.currency": target,
+      rates: {
+        $elemMatch: {
+          currency: target,
+          value: { $ne: currentRate },
+        },
+      },
     }).sort({ updatedAt: -1 }).exec();
 
-    const previousRate = previousRateDoc?.rates.find(rate => rate.currency === target)?.value || null;
+    const previousRate = previousRateDoc?.rates.find(
+      rate => rate.currency === target && rate.value !== currentRate,
+    )?.value ?? null;
 
     // Asignar estado de tendencia con soporte para sin-cambio y sin-datos.
     let status = 'no-data';
@@ -282,8 +288,6 @@ const getComparisonData = async (req, res, next) => {
         status = 'up';
       } else if (currentRate < previousRate) {
         status = 'dw';
-      } else {
-        status = 'eq';
       }
     }
 
@@ -294,9 +298,10 @@ const getComparisonData = async (req, res, next) => {
       targetCurrency: target,
       currentRate,
       previousRate,
+      hasHistoricalComparison: previousRate !== null,
       updatedAt: baseData.updatedAt,
       status,
-      hasChanges: true,
+      hasChanges: previousRate !== null,
       pollIntervalMinutes,
     });
   } catch (error) {
