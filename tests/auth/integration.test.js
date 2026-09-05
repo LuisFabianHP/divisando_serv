@@ -24,7 +24,7 @@ jest.setTimeout(30000);
 // --- SOFT DELETE FLOW ---
 describe('Soft Delete Flow', () => {
   const softDeleteUser = {
-    username: 'softdeleteuser',
+    username: 'Soft Delete User',
     email: 'softdeleteuser@example.com',
     password: 'SoftDelete123!'
   };
@@ -85,7 +85,7 @@ describe('Soft Delete Flow', () => {
 // --- RESTO DE PRUEBAS DE INTEGRACIÓN ---
 const runId = Date.now();
 const accountUser = {
-  username: `newuser_${runId}`,
+  username: 'Test User',
   email: `newuser_${runId}@test.com`,
   password: 'SecureP@ss1',
 };
@@ -265,7 +265,7 @@ describe('Auth integration (account verification, password reset, login)', () =>
 // --- PROFILE FLOW ---
 describe('Profile Flow', () => {
   const profileUser = {
-    username: 'profileuser',
+    username: 'Profile User',
     email: 'profileuser@example.com',
     password: 'Profile123!'
   };
@@ -333,11 +333,11 @@ describe('Profile Flow', () => {
       .set('x-api-key', process.env.API_KEY)
       .set('User-Agent', 'DivisandoApp/1.0')
       .set('Authorization', `Bearer ${accessToken}`)
-      .send({ username: 'profileupdated' });
+      .send({ username: 'Profile Updated' });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.user.username).toBe('profileupdated');
+    expect(res.body.user.username).toBe('Profile Updated');
   });
 
   test('PUT /auth/profile rejects username too short', async () => {

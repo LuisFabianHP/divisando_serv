@@ -1,7 +1,5 @@
 module.exports = {
-  globalSetup: './tests/setups/setupMongoMemory.js',
-  globalTeardown: './tests/setups/teardownMongoMemory.js',
-  testEnvironment: 'node',
+  testEnvironment: './tests/setups/mongoMemoryEnvironment.js',
   moduleNameMapper: {
     '^@config/(.*)$': '<rootDir>/config/$1',
     '^@controllers/(.*)$': '<rootDir>/controllers/$1',
