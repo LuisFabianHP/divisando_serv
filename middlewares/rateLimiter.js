@@ -77,7 +77,7 @@ const apiRateLimiter = rateLimit({
 
     const error = new Error('Demasiadas solicitudes desde esta IP.');
     error.status = 429;
-    error.userMessage = `Has excedido el límite de solicitudes. Intenta de nuevo en ${Math.ceil(retryAfter)} segundos.`;
+    error.code = 'rate_limit_exceeded';
     error.route = req.originalUrl;
 
     next(error);

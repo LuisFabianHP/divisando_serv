@@ -1,11 +1,9 @@
 const { apiLogger } = require('@utils/logger');
+const { errorResponse } = require('@utils/apiResponse');
 
 const errorHandler = (err, req, res, next) => {
     // Control del código de status
     const statusCode = err.status || err.statusCode || 500;    
-    // Mensaje corto para el usuario
-    const userMessage = err.userMessage || 'Algo salió mal. Por favor, intenta nuevamente.';
-
     // Detalles técnicos para desarrolladores
     const developerMessage = {
       status: statusCode,
@@ -24,7 +22,7 @@ const errorHandler = (err, req, res, next) => {
 
     // Responder al cliente
     if (!res.headersSent) {
-      res.status(statusCode).json({ error: userMessage });
+      res.status(statusCode).json(errorResponse(err.code || `http_${statusCode}`));
     } else {
       console.error('❌ Error fuera del flujo HTTP:', developerMessage);
     }

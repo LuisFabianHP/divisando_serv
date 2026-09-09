@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { apiLogger } = require('@utils/logger');
+const { errorResponse } = require('@utils/apiResponse');
 
 /**
  * Middleware para validar el token JWT.
@@ -16,7 +17,7 @@ const validateJWT = (req, res, next) => {
             route: req.originalUrl
         };
         apiLogger.warn(error);
-        return res.status(401).json({ error: error.message });
+        return res.status(401).json(errorResponse('token_requerido'));
     }
 
     const token = authHeader.split(' ')[1];
@@ -26,21 +27,23 @@ const validateJWT = (req, res, next) => {
         req.user = decoded;
         next();
     } catch (err) {
-        let errorResponse = {
+        const validationError = {
             taskName: 'validateJWT',
             status: 403,
-            message: 'Algo salió mal. Por favor, intenta nuevamente.',
+            message: 'Error validando token JWT.',
             route: req.originalUrl
         };
 
         if (err.name === 'JsonWebTokenError') {
-            errorResponse.message = 'Token inválido.';
+            validationError.code = 'token_invalido';
         } else if (err.name === 'TokenExpiredError') {
-            errorResponse.message = 'Token expirado.';
+            validationError.code = 'token_expirado';
+        } else {
+            validationError.code = 'error_validacion_token';
         }
 
-        apiLogger.error(errorResponse);
-        return res.status(403).json({ error: errorResponse.message });
+        apiLogger.error(validationError);
+        return res.status(403).json(errorResponse(validationError.code));
     }
 };
 
