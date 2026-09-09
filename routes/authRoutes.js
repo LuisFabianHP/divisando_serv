@@ -20,6 +20,7 @@ const {
     updateProfile
 } = require('@controllers/authController');
 const validateJWT = require('@middlewares/validateJWT');
+const { errorResponse } = require('@utils/apiResponse');
 
 const logProfileRouteHit = (req, _res, next) => {
     const traceId = req.headers['x-trace-id'] || '-';
@@ -31,9 +32,9 @@ const logProfileRouteHit = (req, _res, next) => {
 router.post('/register', register);
 router.post('/login', login);
 router.post('/google', loginWithGoogle); // Endpoint para mobile/Flutter (Google)
-router.post('/apple', (_req, res) => res.status(410).json({
-    error: 'Login con Apple deshabilitado temporalmente.'
-}));
+router.post('/apple', (_req, res) => res.status(410).json(
+    errorResponse('apple_login_temporalmente_deshabilitado')
+));
 router.post('/refresh', refreshAccessToken);
 router.post('/logout', logout);
 router.post('/code/verification', verificationCodeLimiter, verificationCode);
