@@ -12,15 +12,15 @@ router.get('/health', async (req, res) => {
         const statusCode = isHealthy ? 200 : 503;
 
         res.status(statusCode).json({
+            success: isHealthy,
             status: isHealthy ? 'ok' : 'degraded',
-            message: isHealthy
-                ? 'API en funcionamiento'
-                : 'Servicio temporalmente no disponible. Intenta nuevamente más tarde.',
+            ...(isHealthy ? {} : { error: 'servicio_no_disponible' }),
         });
     } catch (error) {
         res.status(503).json({
+            success: false,
             status: 'error',
-            message: 'Servicio temporalmente no disponible. Intenta nuevamente más tarde.',
+            error: 'servicio_no_disponible',
         });
     }
 });
@@ -34,6 +34,7 @@ router.get('/health/database', validateApiKey, async (req, res) => {
         const statusCode = isHealthy ? 200 : 503;
         
         res.status(statusCode).json({
+            success: isHealthy,
             status: isHealthy ? "healthy" : "unhealthy",
             database: {
                 connected: dbStatus.readyState === 1,
@@ -46,8 +47,9 @@ router.get('/health/database', validateApiKey, async (req, res) => {
         });
     } catch (error) {
         res.status(503).json({
+            success: false,
             status: "error",
-            message: "Servicio temporalmente no disponible. Intenta nuevamente más tarde.",
+            error: "servicio_no_disponible",
             timestamp: new Date().toISOString()
         });
     }

@@ -33,9 +33,9 @@ const verificationCodeLimiter = rateLimit({
 
     res.set('Retry-After', retryAfter);
     res.status(429).json({
-      error: 'Demasiados intentos de verificación.',
+      success: false,
+      error: 'verification_rate_limit_exceeded',
       retryAfter: retryAfter,
-      message: `Espera ${retryAfter} segundos antes de reintentar.`
     });
   }
 });
@@ -71,9 +71,9 @@ const forgotPasswordLimiter = rateLimit({
 
     res.set('Retry-After', retryAfter);
     res.status(429).json({
-      error: 'Demasiadas solicitudes de recuperación de contraseña.',
+      success: false,
+      error: 'password_recovery_rate_limit_exceeded',
       retryAfter: retryAfter,
-      message: `Espera ${Math.ceil(retryAfter / 60)} minutos antes de reintentar.`
     });
   }
 });
@@ -109,9 +109,9 @@ const resendCodeLimiter = rateLimit({
 
     res.set('Retry-After', retryAfter);
     res.status(429).json({
-      error: 'Demasiadas solicitudes de reenvío de código.',
+      success: false,
+      error: 'verification_resend_rate_limit_exceeded',
       retryAfter: retryAfter,
-      message: `Espera ${Math.ceil(retryAfter / 60)} minutos antes de reintentar.`
     });
   }
 });
