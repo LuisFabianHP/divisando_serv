@@ -13,6 +13,13 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 - Al iniciar la lectura de estas instrucciones, también se debe hacer una lectura rápida del README del proyecto para tomar contexto funcional.
 - Lectura rápida requerida: `D:\Proyectos\DivisandoApp\divisando_serv\README.md`
 
+## Herramienta NaturalTasks CLI
+
+- `NaturalTasks CLI` es un puente conversacional entre Trello y asistentes de IA como GitHub Copilot.
+- Permite consultar el backlog, analizar prioridades y gestionar tareas mediante lenguaje natural, sin salir de VS Code.
+- Usarla para revisar tableros, tarjetas, prioridades, estados, responsables y criterios de aceptación antes de iniciar o cerrar tareas.
+- Consultar su manual antes de crear scripts o usar soluciones personalizadas: `D:\Proyectos\NaturalTasks\naturaltasks_cli\README.md`.
+
 ## Modelo de ramas
 
 - `dev-api-task`: rama principal de desarrollo.
