@@ -24,3 +24,13 @@ Detectar fallas de seguridad reales y convertir los hallazgos en acciones verifi
 - Se evaluó la exposición de datos sensibles.
 - Se revisaron límites de abuso y configuración insegura.
 - Los hallazgos se documentan con impacto y remedio.
+
+## Cierre de auditoría y registro en Trello
+
+Al terminar la auditoría, antes de crear o modificar tareas:
+
+- Presentar el resumen de hallazgos con severidad, evidencia, impacto y recomendación.
+- Preguntar: **"¿Deseas que registre estas observaciones como tareas en Trello?"**
+- Esperar una confirmación explícita. No crear tareas automáticamente.
+- Si se confirma, registrar cada observación exclusivamente en el board `Divisando API`, con problema, contexto, solución propuesta y criterios de aceptación. No usar otros boards.
+- No incluir secretos, tokens, credenciales ni datos sensibles en tarjetas o comentarios.
