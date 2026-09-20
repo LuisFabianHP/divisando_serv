@@ -59,3 +59,13 @@ Estas reglas son obligatorias para cualquier cambio en este repositorio.
 
 - Prohibido promover cambios desde `pruebas` hacia `dev-api-task`.
 - La promoción a `main` se hace desde trabajo validado en `dev-api-task`.
+
+## Cierre obligatorio de auditorías
+
+Al finalizar cualquier auditoría de seguridad, arquitectura, diseño o calidad:
+
+1. Presentar los hallazgos, su severidad, evidencia y recomendación.
+2. Preguntar explícitamente si se desean registrar las observaciones en Trello.
+3. Si la respuesta es afirmativa, crear las tareas exclusivamente en el board `Divisando API`, usando el formato del proyecto (problema, contexto, solución propuesta y criterios de aceptación). No enviar observaciones a otros boards.
+4. Priorizar en `In Progress` únicamente los hallazgos críticos o de mayor prioridad; dejar los demás en la lista acordada.
+5. No registrar secretos, tokens, credenciales ni datos sensibles en las tareas o comentarios.
