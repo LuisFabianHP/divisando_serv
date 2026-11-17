@@ -91,8 +91,28 @@ const ensureMailgunClient = () => {
     }
 };
 
+const buildVerificationEmail = (code) => ({
+    subject: 'Tu código de verificación de Divisando',
+    text: `Tu código de verificación de Divisando es: ${code}\n\nExpira en 5 minutos. Si no solicitaste este código, puedes ignorar este correo.\n\nEquipo Divisando`,
+    html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2c3e50;">Código de verificación</h2>
+            <p>Usa este código para continuar en Divisando:</p>
+            <p style="font-size: 28px; letter-spacing: 6px; font-weight: bold; color: #2c3e50;">${code}</p>
+            <p>El código expira en 5 minutos.</p>
+            <p style="color: #7f8c8d; font-size: 12px; margin-top: 30px;">
+                Si no solicitaste este código, puedes ignorar este correo.
+            </p>
+            <p style="color: #7f8c8d; font-size: 12px;">
+                Equipo <strong>Divisando</strong>
+            </p>
+        </div>
+    `
+});
+
 /**
  * Envía un correo con el código de verificación.
+ * Tracking desactivado: el pixel de apertura y la reescritura de enlaces elevan el score de spam en correos transaccionales.
  * @param {string} email - Correo del usuario.
  * @param {string} code - Código de verificación.
  */
@@ -106,12 +126,17 @@ const sendVerificationEmail = async (email, code) => {
             return;
         }
 
+        const { subject, text, html } = buildVerificationEmail(code);
+        const replyTo = getEnvValue('MAIL_REPLY_TO');
         const mailOptions = {
             from: `"Divisando" <${mailgunState.fromAddress}>`,
             to: email,
-            subject: 'Código de Verificación',
-            text: `Tu código de verificación es: ${code}. Expira en 5 minutos.`,
-            html: `<p>Tu código de verificación es: <strong>${code}</strong></p><p>Expira en 5 minutos.</p>`
+            subject,
+            text,
+            html,
+            'o:tracking': 'no',
+            'o:tag': 'account-verification',
+            ...(replyTo ? { 'h:Reply-To': replyTo } : {})
         };
 
         await client.messages.create(mailgunState.domain, mailOptions);
