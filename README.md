@@ -262,6 +262,7 @@ Variables esenciales:
 - `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
 - `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
 - `MAIL_FROM_EMAIL` - Remitente para correos (recomendado en sandbox: `postmaster@<MAILGUN_DOMAIN>`)
+- `MAIL_REPLY_TO` - (Opcional) Dirección de respuesta (`Reply-To`) en correos de verificación; si no se define, el encabezado no se envía
 - `MAILGUN_REGION` - Región de Mailgun (`us` o `eu`); para `eu` se usa `https://api.eu.mailgun.net`
 - `MAILGUN_BASE_URL` - URL base opcional de Mailgun para override explícito
 
