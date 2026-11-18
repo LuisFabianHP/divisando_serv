@@ -261,18 +261,18 @@ Variables esenciales:
   - Recomendación Railway: declarar explícitamente los IDs usados por cada plataforma para evitar `401 Token de Google inválido` por desalineación de audiencia.
 - `MAILGUN_API_KEY` - API key de Mailgun para envío de correos transaccionales
 - `MAILGUN_DOMAIN` - Dominio verificado en Mailgun (ej. mg.tu-dominio.com)
-- `MAIL_FROM_EMAIL` - Remitente para correos (recomendado en sandbox: `postmaster@<MAILGUN_DOMAIN>`)
+- `MAIL_FROM_EMAIL` - Remitente para correos (ej. `noreply@mail.divisando.com` con dominio propio; en sandbox usar `postmaster@<MAILGUN_DOMAIN>`)
 - `MAIL_REPLY_TO` - (Opcional) Dirección de respuesta (`Reply-To`) en correos de verificación; si no se define, el encabezado no se envía
 - `MAILGUN_REGION` - Región de Mailgun (`us` o `eu`); para `eu` se usa `https://api.eu.mailgun.net`
 - `MAILGUN_BASE_URL` - URL base opcional de Mailgun para override explícito
 
-#### Mailgun en Railway (nota importante)
+#### Mailgun en Railway y Render (nota importante)
 - El servicio de correo usa inicialización dinámica de variables de entorno en tiempo de envío.
 - Esto evita que `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` queden en `undefined` cuando Railway inyecta variables después de cargar módulos.
 - Si faltan variables, el sistema entra en modo demo (logs en consola) sin romper el flujo de registro/reset.
 
-**Checklist rápido en Railway:**
-1. Verifica que existan `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` en Variables.
+**Checklist rápido en Railway o Render:**
+1. Verifica que existan `MAILGUN_API_KEY` y `MAILGUN_DOMAIN` en las variables de entorno del servicio.
 2. Si usas dominio sandbox, configura `MAIL_FROM_EMAIL=postmaster@<MAILGUN_DOMAIN>` y autoriza el correo destino en Mailgun.
 3. Si tu cuenta es de región EU, define `MAILGUN_REGION=eu` (o `MAILGUN_BASE_URL=https://api.eu.mailgun.net`).
 4. Confirma redeploy/restart del servicio tras actualizar variables.
