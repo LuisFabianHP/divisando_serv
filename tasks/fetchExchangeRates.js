@@ -27,8 +27,14 @@ const RECENT_MINUTES = Number(
 const RATE_ALERT_MIN_CHANGE_PERCENT = Number(process.env.RATE_ALERT_MIN_CHANGE_PERCENT || '2');
 const RATE_ALERTS_ENABLED = String(process.env.RATE_ALERTS_ENABLED || 'true').toLowerCase() === 'true';
 
+// Timeout por petición a la API de tasas y tiempo máximo antes de considerar una corrida colgada
+const EXCHANGE_API_TIMEOUT_MS = 15000;
+const MAX_RUN_DURATION_MS = 10 * 60 * 1000;
+
 // Estado de ejecución del cron
 let exchangeRatesRunning = false;
+let exchangeRatesRunStartedAt = 0;
+let exchangeRatesRunId = 0;
 let exchangeRatesTask = null;
 let rateAlertWritesEnabled = RATE_ALERTS_ENABLED;
 
@@ -232,7 +238,9 @@ async function fetchExchangeRatesForCurrency(baseCurrency) {
       return;
     }
 
-    const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`);
+    const response = await axios.get(`${API_URL}${API_KEY}/latest/${baseCurrency}`, {
+      timeout: EXCHANGE_API_TIMEOUT_MS,
+    });
     const rateCount = Object.keys(response.data?.conversion_rates || {}).length;
     taskLogger.info(`Respuesta de la API para ${baseCurrency}: ${rateCount} tasas.`);
 
@@ -307,12 +315,18 @@ async function updateCurrencyList() {
  * Cron job para actualizar tasas de cambio.
  */
 async function updateExchangeRates() {
+  const now = Date.now();
   if (exchangeRatesRunning) {
-    taskLogger.warn('La actualización de tasas ya está en ejecución. Saltando nueva ejecución.');
-    return;
+    if (now - exchangeRatesRunStartedAt < MAX_RUN_DURATION_MS) {
+      taskLogger.warn('La actualización de tasas ya está en ejecución. Saltando nueva ejecución.');
+      return;
+    }
+    taskLogger.warn('Una ejecución previa de tasas excedió el tiempo máximo. Se inicia una nueva.');
   }
 
+  const runId = ++exchangeRatesRunId;
   exchangeRatesRunning = true;
+  exchangeRatesRunStartedAt = now;
   taskLogger.info(`|| Inicio de la extracción de tasas de cambio ||`);
 
   try {
@@ -345,7 +359,9 @@ async function updateExchangeRates() {
     taskLogger.error(`Error durante la actualización de tasas de cambio: ${error.message}`);
     console.error('Error durante la actualización de tasas de cambio. Consulta los logs para más detalles.');
   } finally {
-    exchangeRatesRunning = false;
+    if (runId === exchangeRatesRunId) {
+      exchangeRatesRunning = false;
+    }
   }
 }
 

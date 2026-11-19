@@ -166,6 +166,14 @@ const sendVerificationEmail = async (email, code) => {
     }
 };
 
+const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+})[char]);
+
 /**
  * Envía un correo de confirmación cuando se restablece la contraseña.
  * @param {string} email - Correo del usuario.
@@ -184,12 +192,12 @@ const sendPasswordChangedEmail = async (email, username) => {
         const mailOptions = {
             from: `"Divisando" <${mailgunState.fromAddress}>`,
             to: email,
-            subject: '🔐 Contraseña Restablecida Exitosamente',
+            subject: 'Contraseña restablecida exitosamente',
             text: `Hola ${username},\n\nTu contraseña ha sido restablecida exitosamente.\n\nSi no realizaste este cambio, contacta inmediatamente a soporte.\n\nSaludos,\nEquipo Divisando`,
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #2c3e50;">🔐 Contraseña Restablecida</h2>
-                    <p>Hola <strong>${username}</strong>,</p>
+                    <p>Hola <strong>${escapeHtml(username)}</strong>,</p>
                     <p>Tu contraseña ha sido <strong>restablecida exitosamente</strong>.</p>
                     <p>Ahora puedes iniciar sesión con tu nueva contraseña.</p>
                     <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 20px 0;">

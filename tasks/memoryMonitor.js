@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const v8 = require('v8');
 const { taskLogger } = require('@utils/logger');
 
 const CRON_SCHEDULE = process.env.MEMORY_MONITOR_CRON || '*/5 * * * *'; // Cada 5 minutos
@@ -6,18 +7,19 @@ const CRON_SCHEDULE = process.env.MEMORY_MONITOR_CRON || '*/5 * * * *'; // Cada 
 let memoryMonitorTask = null;
 
 /**
- * Monitorea el uso de memoria heap y genera alertas si es necesario
+ * Monitorea el uso de memoria heap contra el límite real de V8 y genera alertas si es necesario
  */
 function monitorMemory() {
   const usage = process.memoryUsage();
+  const heapLimit = v8.getHeapStatistics().heap_size_limit;
   const heapUsedMB = (usage.heapUsed / 1024 / 1024).toFixed(2);
-  const heapTotalMB = (usage.heapTotal / 1024 / 1024).toFixed(2);
+  const heapLimitMB = (heapLimit / 1024 / 1024).toFixed(2);
   const rssMB = (usage.rss / 1024 / 1024).toFixed(2);
   const externalMB = (usage.external / 1024 / 1024).toFixed(2);
-  
-  const heapUsagePercent = ((usage.heapUsed / usage.heapTotal) * 100).toFixed(2);
 
-  taskLogger.info(`[Memory Monitor] Heap: ${heapUsedMB}MB/${heapTotalMB}MB (${heapUsagePercent}%) | RSS: ${rssMB}MB | External: ${externalMB}MB`);
+  const heapUsagePercent = ((usage.heapUsed / heapLimit) * 100).toFixed(2);
+
+  taskLogger.info(`[Memory Monitor] Heap: ${heapUsedMB}MB/${heapLimitMB}MB límite (${heapUsagePercent}%) | RSS: ${rssMB}MB | External: ${externalMB}MB`);
 
   // Alerta si el uso de heap supera el 80%
   if (heapUsagePercent > 80) {
