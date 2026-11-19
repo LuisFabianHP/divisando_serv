@@ -10,11 +10,7 @@ Guia tecnica para instalar, operar, mantener y extender el backend de Divisando.
 - 4. Configuracion (.env)
 - 5. Arquitectura y carpetas
 - 6. Seguridad y middlewares
-<<<<<<< HEAD
-- 7. Optimizacion de memoria (Railway)
-=======
 - 7. Optimizacion de memoria
->>>>>>> dev-api-task
 - 8. Tarea de tasas de cambio
 - 9. Autenticacion
 - 10. Endpoints principales
@@ -162,17 +158,6 @@ MEMORY_MONITOR_CRON=*/5 * * * *
 GC_CRON=*/30 * * * *
 ```
 
-### Optimizacion de memoria (Railway)
-- `RATE_LIMIT_STORE_MAX_ENTRIES` (default: 5000)
-- `MONGO_MAX_POOL_SIZE` (default: 10)
-- `MONGO_MIN_POOL_SIZE` (default: 2)
-- `MONGO_MAX_IDLE_MS` (default: 60000)
-- `MEMORY_MONITOR_CRON` (default: */5 * * * *)
-- `GC_CRON` (default: */30 * * * *)
-
-Valores por defecto configurados para plan gratuito/limitado.
-Para escalamiento ver archivo `.env.memory-optimization`.
-
 ---
 
 ## 5. Arquitectura y carpetas
@@ -197,55 +182,7 @@ Para escalamiento ver archivo `.env.memory-optimization`.
 
 ---
 
-<<<<<<< HEAD
-## 7. Optimizacion de memoria (Railway)
-
-### Rate Limiter optimizado
-Archivo: `middlewares/rateLimiter.js`
-- Store en memoria limitado a 5000 entradas (configurable).
-- Limpieza automatica cada 5 minutos.
-- Previene crecimiento ilimitado de memoria.
-- Variable: `RATE_LIMIT_STORE_MAX_ENTRIES`
-
-### Connection Pool MongoDB
-Archivo: `config/database.js`
-- `maxPoolSize`: 10 conexiones simultaneas.
-- `minPoolSize`: 2 conexiones siempre activas.
-- `maxIdleTimeMS`: 60000ms (1min) antes de cerrar inactivas.
-- Variables: `MONGO_MAX_POOL_SIZE`, `MONGO_MIN_POOL_SIZE`, `MONGO_MAX_IDLE_MS`
-
-### Memory Monitor
-Archivo: `tasks/memoryMonitor.js`
-- Monitoreo cada 5 minutos via cron.
-- Logs: heap usado/total, RSS, external memory.
-- Alertas automaticas:
-  - Warning si heap > 80%
-  - Critico si heap > 90%
-- Variable: `MEMORY_MONITOR_CRON`
-
-### Garbage Collector
-Archivo: `tasks/garbageCollector.js`
-- Fuerza recoleccion de basura cada 30 minutos.
-- Requiere flag `--expose-gc` en comando start de Railway.
-- Logs: memoria liberada en MB.
-- Variable: `GC_CRON`
-
-### Escalamiento
-Ver archivo `.env.memory-optimization` para:
-- Valores recomendados plan gratuito vs plan pro.
-- Instrucciones de configuracion en Railway.
-- Ajustes para mayor escala.
-
----
-
-## 8. Tarea de tasas de cambio
-Archivo: `tasks/fetchExchangeRates.js`.
-- Cron configurable via `EXCHANGE_RATE_CRON`.
-- Evita re-consulta dentro de `EXCHANGE_RATE_RECENT_HOURS`.
-- Monedas desde `EXCHANGE_RATE_CURRENCIES` o `AvailableCurrencies`.
-=======
 ## 7. Optimizacion de memoria
->>>>>>> dev-api-task
 
 ### Rate Limiter optimizado
 Archivo: `middlewares/rateLimiter.js`
@@ -299,8 +236,6 @@ Archivo: `tasks/garbageCollector.js`
 
 ---
 
-<<<<<<< HEAD
-=======
 ## 8. Tarea de tasas de cambio
 Archivo: `tasks/fetchExchangeRates.js`.
 - Cron configurable via `EXCHANGE_RATE_CRON`.
@@ -341,7 +276,6 @@ GET /v6/<API_KEY>/latest/<BASE>
 
 ---
 
->>>>>>> dev-api-task
 ## 9. Autenticacion
 Flujo principal:
 - `POST /auth/register` => crea usuario y genera codigo.
@@ -441,13 +375,8 @@ npm test
 ## 14. Escalamiento
 - Ajustar `EXCHANGE_RATE_CURRENCIES` y `EXCHANGE_RATE_CRON`.
 - Considerar plan pago de ExchangeRate-API.
-<<<<<<< HEAD
-- Optimizacion de memoria: ver seccion 7 y `.env.memory-optimization`.
-- Evaluar hosting alterno si Railway limita recursos.
-=======
 - Optimización de memoria: ver sección 7.
 - Para deployment específico (ej. Railway): ver archivo RAILWAY_DEPLOYMENT.md
->>>>>>> dev-api-task
 
 ---
 

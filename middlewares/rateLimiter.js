@@ -43,10 +43,10 @@ class LimitedMemoryStore {
   cleanup() {
     const now = Date.now();
     for (const [key, record] of this.hits.entries()) {
-  const resetTimestamp = record.resetTime instanceof Date 
-    ? record.resetTime.getTime() 
-    : record.resetTime;
-  if (resetTimestamp < now) {
+      const resetTimestamp = record.resetTime instanceof Date 
+        ? record.resetTime.getTime() 
+        : record.resetTime;
+      if (resetTimestamp < now) {
         this.hits.delete(key);
       }
     }
@@ -72,7 +72,7 @@ const apiRateLimiter = rateLimit({
   store,
   keyGenerator: (req) => req.headers['x-forwarded-for'] || req.ip,
   handler: (req, res, next) => {
-  const retryAfter = Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000) || 60;
+    const retryAfter = Math.ceil((req.rateLimit.resetTime.getTime() - Date.now()) / 1000) || 60;
     res.set('Retry-After', retryAfter);
 
     const error = new Error('Demasiadas solicitudes desde esta IP.');
