@@ -140,12 +140,12 @@ GET /exchange/currencies
 ```json
 POST /auth/login
 Content-Type: application/json
-x-api-key: ***REMOVED***
+x-api-key: <API_KEY>
 User-Agent: DivisandoApp/1.0
 
 {
-  "email": "test.feb12.api@gmail.com",
-  "password": "D1v1$and0"
+  "email": "<TEST_EMAIL>",
+  "password": "<INVALID_TEST_PASSWORD>"
 }
 ```
 
@@ -153,7 +153,7 @@ User-Agent: DivisandoApp/1.0
 
 **❌ Error 1: x-api-key incorrecta**
 - Utilicé: `x-api-key: test-api-key-123`
-- Producción requiere: `x-api-key: ***REMOVED***`
+- Producción requiere: `x-api-key` configurado en Railway
 - Resultado: `403 Forbidden` (API key inválida)
 - **Solución:** Usar la API key correcta del archivo `.env` de producción
 
@@ -164,7 +164,7 @@ User-Agent: DivisandoApp/1.0
 - **Solución:** Usar User-Agent configurado en `API_ALLOWED_USER_AGENTS` del `.env`
 
 **❌ Error 3: Credenciales de usuario incorrecto**
-- El usuario `test.feb12.api@gmail.com` existe pero la contraseña puede haber cambiado
+- El usuario de prueba existe, pero la contraseña puede haber cambiado
 - Resultado: `401 Unauthorized` incluso con API key + User-Agent correctos
 - **Solución:** Confirmar credenciales de usuario en base de datos, o crear nuevo usuario de prueba con `POST /auth/register`
 
@@ -192,7 +192,7 @@ User-Agent: DivisandoApp/1.0
 - Todos los endpoints rechazan correctamente solicitudes no autorizadas
 - Los mensajes de error son claros y consistentes
 - **Headers requeridos para testing en producción:**
-  - `x-api-key: ***REMOVED***`
+  - `x-api-key: <API_KEY>` desde Railway Variables
   - `User-Agent: DivisandoApp/1.0`
   - `Authorization: Bearer <refreshToken>` (para rutas protegidas como `/exchange/*`)
 
@@ -345,8 +345,8 @@ Resultado: ___________
 
 | Ambiente | URL Base | x-api-key | User-Agent | Ubicación |
 |----------|----------|-----------|-----------|----------|
-| Producción | `https://divisando-serv-production.up.railway.app` | `***REMOVED***` | `DivisandoApp/1.0` | `.env` |
-| Desarrollo | `http://localhost:5000` | `***REMOVED***` | `DivisandoApp/1.0` | `development.env` |
+| Producción | Railway service URL | `API_KEY` desde Railway Variables | `DivisandoApp/1.0` | Secret manager |
+| Desarrollo | `http://localhost:5000` | `API_KEY` desde entorno local | `DivisandoApp/1.0` | Archivo ignorado por Git |
 
 ## 📝 Estado
 

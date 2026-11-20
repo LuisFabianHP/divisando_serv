@@ -4,5 +4,8 @@ docs/
 # Excluir otros archivos innecesarios
 *.md
 .gitignore
+.env
+.env.*
+*.env
 .env.local
 .DS_Store
