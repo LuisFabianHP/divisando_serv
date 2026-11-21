@@ -1,0 +1,16 @@
+node_modules/
+* - copia - *
+*-copia-*
+* - copia.*
+*-copia.*
+.env
+.env.*
+*.env
+logs/
+.cert
+.key
+openssl.cnf
+server.cert
+server.key
+.vscode
+MANUAL_RAILWAY.md
