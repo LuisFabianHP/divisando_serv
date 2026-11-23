@@ -62,14 +62,13 @@ jobs:
             --vpc-connector=conector-run
             --vpc-egress=all-traffic
           env_vars: |
-            PORT=5000
             NODE_ENV=production
             API_NAME=Divisando API Server
             API_ALLOWED_USER_AGENTS=DivisandoApp/1.0
             API_CROS_DOMAINS=http://api.divisando.com
             EXCHANGE_RATE_API_URL=https://v6.exchangerate-api.com/v6/
             EXCHANGE_RATE_CRON=0 */6 * * *
-            EXCHANGE_RATE_CURRENCIES=USD,MXN,EUR,CAD
+            EXCHANGE_RATE_CURRENCIES=USD\,MXN\,EUR\,CAD
             EXCHANGE_RATE_RECENT_HOURS=6
             GOOGLE_CLIENT_ID=402774441136-ft8e3v1tdueqcl00kfas0asbgek5hejj.apps.googleusercontent.com
             GOOGLE_WEB_CLIENT_ID=402774441136-ft8e3v1tdueqcl00kfas0asbgek5hejj.apps.googleusercontent.com
@@ -93,6 +92,4 @@ jobs:
             API_KEY=${{ secrets.API_KEY }}
             EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
-            MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
-            LIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
