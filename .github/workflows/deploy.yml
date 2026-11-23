@@ -49,7 +49,7 @@ jobs:
           docker push "$IMAGE_TAG"
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-      # 5. Desplegar en Cloud Run con Variables de Entorno y Puerto 5000
+      # 5. Desplegar en Cloud Run con IP Fija y Variables de Entorno
       - name: Desplegar en Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
@@ -59,6 +59,8 @@ jobs:
           flags: |
             --allow-unauthenticated
             --port=5000
+            --vpc-connector=conector-run
+            --vpc-egress=all-traffic
           env_vars: |
             PORT=5000
             NODE_ENV=production
@@ -91,4 +93,6 @@ jobs:
             API_KEY=${{ secrets.API_KEY }}
             EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
+LIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
