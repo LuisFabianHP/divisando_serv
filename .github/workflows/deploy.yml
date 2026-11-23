@@ -94,5 +94,5 @@ jobs:
             EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
-LIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            LIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
