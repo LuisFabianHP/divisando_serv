@@ -1,0 +1,54 @@
+name: CI/CD Despliegue Continuo a Cloud Run
+
+on:
+  push:
+    branches:
+      - main  # o master, según el nombre de tu rama principal
+
+env:
+  PROJECT_ID: project-7460e8b4-3f5e-4c2f-9c9
+  REGION: us-central1
+  REPOSITORY: app-repo
+  SERVICE_NAME: divisando-api  # Nombre para tu servicio en Cloud Run
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Requerido obligatoriamente para Workload Identity Federation
+
+    steps:
+      # 1. Descargar el código fuente
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      # 2. Autenticación segura con Google Cloud (Zero-Keys)
+      - name: Autenticación en Google Cloud con WIF
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # 3. Autenticar Docker con Artifact Registry
+      - name: Configurar Docker para Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      # 4. Compilar imagen con etiqueta inmutable (Git SHA)
+      - name: Compilar y etiquetar imagen Docker
+        run: |
+          IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+          docker build -t "$IMAGE_TAG" .
+          docker push "$IMAGE_TAG"
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+
+      # 5. Desplegar en Cloud Run con actualización progresiva (Rolling Update)
+      - name: Desplegar en Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.IMAGE_TAG }}
+          flags: '--allow-unauthenticated'
