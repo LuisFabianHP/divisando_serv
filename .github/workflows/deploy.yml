@@ -3,48 +3,53 @@ name: CI/CD Despliegue Continuo a Cloud Run
 on:
   push:
     branches:
-      - main  # o master, según el nombre de tu rama principal
+      - main
 
 env:
   PROJECT_ID: project-7460e8b4-3f5e-4c2f-9c9
   REGION: us-central1
   REPOSITORY: app-repo
-  SERVICE_NAME: divisando-api  # Nombre para tu servicio en Cloud Run
+  SERVICE_NAME: divisando-api
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # Requerido obligatoriamente para Workload Identity Federation
+      id-token: write
 
     steps:
-      # 1. Descargar el código fuente
+      # 1. Descargar el código
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      # 2. Autenticación segura con Google Cloud (Zero-Keys)
+      # 2. Autenticación en Google Cloud con WIF
       - name: Autenticación en Google Cloud con WIF
         id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          token_format: 'access_token'
+          export_environment_variables: true
 
-      # 3. Autenticar Docker con Artifact Registry
-      - name: Configurar Docker para Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      # 3. Autenticar Docker directamente con el token obtenido
+      - name: Login en Artifact Registry para Docker
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGION }}-docker.pkg.dev
+          username: 'oauth2accesstoken'
+          password: ${{ steps.auth.outputs.access_token }}
 
-      # 4. Compilar imagen con etiqueta inmutable (Git SHA)
-      - name: Compilar y etiquetar imagen Docker
+      # 4. Compilar y subir la imagen
+      - name: Compilar y subir imagen Docker
         run: |
           IMAGE_TAG="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
           docker build -t "$IMAGE_TAG" .
           docker push "$IMAGE_TAG"
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-      # 5. Desplegar en Cloud Run con actualización progresiva (Rolling Update)
+      # 5. Desplegar en Cloud Run
       - name: Desplegar en Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
