@@ -33,7 +33,7 @@ jobs:
           token_format: 'access_token'
           export_environment_variables: true
 
-      # 3. Autenticar Docker directamente con el token obtenido
+      # 3. Autenticar Docker con Artifact Registry
       - name: Login en Artifact Registry para Docker
         uses: docker/login-action@v3
         with:
@@ -49,11 +49,46 @@ jobs:
           docker push "$IMAGE_TAG"
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-      # 5. Desplegar en Cloud Run
+      # 5. Desplegar en Cloud Run con Variables de Entorno y Puerto 5000
       - name: Desplegar en Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.IMAGE_TAG }}
-          flags: '--allow-unauthenticated'
+          flags: |
+            --allow-unauthenticated
+            --port=5000
+          env_vars: |
+            PORT=5000
+            NODE_ENV=production
+            API_NAME=Divisando API Server
+            API_ALLOWED_USER_AGENTS=DivisandoApp/1.0
+            API_CROS_DOMAINS=http://api.divisando.com
+            EXCHANGE_RATE_API_URL=https://v6.exchangerate-api.com/v6/
+            EXCHANGE_RATE_CRON=0 */6 * * *
+            EXCHANGE_RATE_CURRENCIES=USD,MXN,EUR,CAD
+            EXCHANGE_RATE_RECENT_HOURS=6
+            GOOGLE_CLIENT_ID=402774441136-ft8e3v1tdueqcl00kfas0asbgek5hejj.apps.googleusercontent.com
+            GOOGLE_WEB_CLIENT_ID=402774441136-ft8e3v1tdueqcl00kfas0asbgek5hejj.apps.googleusercontent.com
+            GOOGLE_ANDROID_CLIENT_ID=402774441136-82go6dv7an0jba53i5ts0797o27cjn2u.apps.googleusercontent.com
+            JWT_EXPIRES_IN=7d
+            JWT_REFRESH_EXPIRES_IN=7d
+            RATE_LIMIT_STORE_MAX_ENTRIES=5000
+            MONGO_MAX_POOL_SIZE=10
+            MONGO_MIN_POOL_SIZE=2
+            MONGO_MAX_IDLE_MS=60000
+            MEMORY_MONITOR_CRON=*/5 * * * *
+            GC_CRON=*/30 * * * *
+            MAILGUN_DOMAIN=mail.divisando.com
+            MAIL_FROM_EMAIL=noreply@mail.divisando.com
+            MAILGUN_REGION=us
+            MAILGUN_BASE_URL=https://api.mailgun.net
+            APP_RATE_POLL_INTERVAL_MINUTES=30
+            MONGO_URI=${{ secrets.MONGO_URI }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_REFRESH_SECRET=${{ secrets.JWT_REFRESH_SECRET }}
+            API_KEY=${{ secrets.API_KEY }}
+            EXCHANGE_RATE_API_KEY=${{ secrets.EXCHANGE_RATE_API_KEY }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            MAILGUN_API_KEY=${{ secrets.MAILGUN_API_KEY }}
